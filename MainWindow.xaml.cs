@@ -23254,6 +23254,7 @@ public partial class MainWindow
     // ── Environment changed — reset company list ─────────────────────────────
     private void VM2EnvBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
+        if (VM2CompanyPanel == null) return;
         _vm2Companies = [];
         VM2CompanyPanel.Visibility = Visibility.Collapsed;
         VM2LookupErrorText.Visibility = Visibility.Collapsed;
