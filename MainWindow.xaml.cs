@@ -260,6 +260,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         8  => TabItem8,  9  => TabItem9,  10 => TabItem10, 11 => TabItem11,
         12 => TabItem12, 13 => TabItem13, 14 => TabItem14, 15 => TabItem15,
         16 => TabItem16, 17 => TabItem17, 18 => TabItem18, 19 => TabItem19,
+        20 => TabItem20,
         _ => null
     };
 
@@ -272,7 +273,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         9  => NavHelp,      10 => NavDashboard,   11 => NavDisbursements,
         12 => NavAccounts,  13 => NavMerchants,   14 => NavReports,
         15 => NavHttpClient,16 => NavPerf,        17 => NavSubscriptions,
-        18 => NavFiddler,   19 => NavCoreDb,
+        18 => NavFiddler,   19 => NavCoreDb,   20 => NavVerifyMerchant,
         _ => null
     };
 
@@ -23233,4 +23234,543 @@ public class MemberDetailRow
     public string StatusLabel { get; set; } = "";
     public string StatusColor { get; set; } = "#6B7280";
     public bool   HasGaps     { get; set; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Tab 20 — Verify Merchant (full standalone page)
+// ══════════════════════════════════════════════════════════════════════════════
+public partial class MainWindow
+{
+    // Cached across calls within the tab
+    private string?  _vm2CompanyConnStr;
+    private string?  _vm2MerchantId;
+    private string?  _vm2EntityId;
+    private string?  _vm2ApiKey;
+    private bool     _vm2IsTestMode = true;
+
+    private record VM2CompanyOption(string CompanyId, string CompanyName, string AccountId);
+    private List<VM2CompanyOption> _vm2Companies = [];
+
+    // ── Environment changed — reset company list ─────────────────────────────
+    private void VM2EnvBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        _vm2Companies = [];
+        VM2CompanyPanel.Visibility = Visibility.Collapsed;
+        VM2LookupErrorText.Visibility = Visibility.Collapsed;
+    }
+
+    // ── Find Companies by email ───────────────────────────────────────────────
+    private async void VM2FindCompanies_Click(object sender, RoutedEventArgs e)
+    {
+        var email = VM2EmailBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(email)) { VM2ShowLookupError("Enter an email address."); return; }
+
+        var connStr = VM2MainConnStr();
+        if (string.IsNullOrWhiteSpace(connStr)) { VM2ShowLookupError($"No {VM2Env()} Main DB connection string configured in Settings."); return; }
+
+        VM2FindCompaniesBtn.IsEnabled = false;
+        VM2LookupErrorText.Visibility = Visibility.Collapsed;
+        VM2CompanyPanel.Visibility    = Visibility.Collapsed;
+
+        try
+        {
+            var (results, err) = await Services.HostDbService.GetAllAccountCompaniesByEmailAsync(connStr, email);
+            if (err != null) { VM2ShowLookupError(err); return; }
+            if (results.Count == 0) { VM2ShowLookupError($"No companies found for {email}."); return; }
+
+            _vm2Companies = results.Select(r => new VM2CompanyOption(r.companyId, r.companyName, r.accountId)).ToList();
+
+            VM2CompanyCombo.Items.Clear();
+            VM2CompanyCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "— select —", Tag = "" });
+            foreach (var c in _vm2Companies)
+                VM2CompanyCombo.Items.Add(new System.Windows.Controls.ComboBoxItem
+                {
+                    Content = $"{c.CompanyName} — {c.CompanyId[..8]}…",
+                    Tag     = c.CompanyId
+                });
+            VM2CompanyCombo.SelectedIndex = 0;
+
+            VM2CompanyLabel.Text       = $"Select Company ({_vm2Companies.Count} found for {email})";
+            VM2CompanyPanel.Visibility = Visibility.Visible;
+
+            if (_vm2Companies.Count == 1)
+            {
+                VM2CompanyCombo.SelectedIndex = 1;
+                VM2CompanyIdBox.Text = _vm2Companies[0].CompanyId;
+            }
+        }
+        catch (Exception ex) { VM2ShowLookupError(ex.Message); }
+        finally { VM2FindCompaniesBtn.IsEnabled = true; }
+    }
+
+    private void VM2CompanyCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (VM2CompanyCombo.SelectedItem is System.Windows.Controls.ComboBoxItem item && item.Tag is string id && !string.IsNullOrEmpty(id))
+            VM2CompanyIdBox.Text = id;
+    }
+
+    // ── Fetch from DB ─────────────────────────────────────────────────────────
+    private async void VM2FetchFromDb_Click(object sender, RoutedEventArgs e)
+    {
+        var companyId = VM2CompanyIdBox.Text.Trim();
+        if (!Guid.TryParse(companyId, out _)) { VM2ShowFetchError("Enter a valid Company GUID."); return; }
+
+        var hostConn = VM2MainConnStr();
+        if (string.IsNullOrWhiteSpace(hostConn)) { VM2ShowFetchError($"No {VM2Env()} Host DB connection string configured in Settings."); return; }
+
+        VM2FetchDbBtn.IsEnabled   = false;
+        VM2FetchDbResult.Visibility = Visibility.Collapsed;
+        VM2FetchDbError.Visibility  = Visibility.Collapsed;
+
+        try
+        {
+            var (merchantId, apiKey, isTest, entityId, err) = await GetPaymentServiceEntityAsync(hostConn, companyId);
+
+            if (err != null && merchantId == null) { VM2ShowFetchError(err); return; }
+            if (merchantId == null && entityId == null) { VM2ShowFetchError("No ThirdPartySettings (Type=19) found for this company."); return; }
+
+            VM2DbMerchantId.Text = merchantId ?? "(empty)";
+            VM2DbEntityId.Text   = entityId   ?? "(empty)";
+            VM2DbApiKey.Text     = MaskKey(apiKey) is { Length: > 0 } k ? k : "(empty)";
+            VM2DbMode.Text       = isTest ? "Sandbox" : "Production";
+            VM2FetchDbResult.Visibility = Visibility.Visible;
+        }
+        catch (Exception ex) { VM2ShowFetchError(ex.Message); }
+        finally { VM2FetchDbBtn.IsEnabled = true; }
+    }
+
+    // ── Verify Merchant ───────────────────────────────────────────────────────
+    private async void VM2VerifyMerchant_Click(object sender, RoutedEventArgs e)
+    {
+        var companyId = VM2CompanyIdBox.Text.Trim();
+        if (!Guid.TryParse(companyId, out _)) { VM2SetBanner("#DC2626", "❌  Enter a valid Company GUID."); return; }
+
+        var hostConn = VM2MainConnStr();
+        if (string.IsNullOrWhiteSpace(hostConn)) { VM2SetBanner("#DC2626", $"❌  No {VM2Env()} Host DB connection string configured."); return; }
+
+        VM2VerifyBtn.IsEnabled    = false;
+        VM2StatusBanner.Visibility  = Visibility.Visible;
+        VM2DetailPanel.Visibility   = Visibility.Collapsed;
+        VM2HealthCard.Visibility    = Visibility.Collapsed;
+        VM2RecreateCard.Visibility  = Visibility.Collapsed;
+        VM2VerifyError.Visibility   = Visibility.Collapsed;
+        _vm2CompanyConnStr = null; _vm2MerchantId = null; _vm2EntityId = null;
+
+        VM2SetBanner("#6B7280", "⏳  Querying Host DB…");
+
+        try
+        {
+            var (merchantId, apiKey, isTest, entityId, dbErr) = await GetPaymentServiceEntityAsync(hostConn, companyId);
+
+            if (dbErr != null) { VM2SetBanner("#DC2626", $"❌  {dbErr}"); return; }
+            if (merchantId == null) { VM2SetBanner("#F59E0B", "⚠  No Payrix payment service found for this company."); return; }
+
+            _vm2MerchantId  = merchantId;
+            _vm2EntityId    = entityId;
+            _vm2ApiKey      = apiKey;
+            _vm2IsTestMode  = isTest;
+
+            // Resolve company conn string for health check
+            var s   = Services.SettingsService.Load();
+            try
+            {
+                var cs   = Services.HostDbService.SanitizeConnectionStringPublic(hostConn);
+                cs = DbHelper.EnsureTrustedCert(cs);
+                var dbId = await Services.HostDbService.GetCompanyDatabaseIdAsync(cs, companyId);
+                _vm2CompanyConnStr = Services.HostDbService.ReplaceInitialCatalogPublic(cs, dbId);
+            }
+            catch { }
+
+            VM2SetBanner("#6B7280", $"⏳  Calling Payrix GET /merchants/{merchantId}…");
+
+            var env    = isTest ? Services.PayrixEnvironment.Sandbox : Services.PayrixEnvironment.Production;
+            var pk     = !string.IsNullOrEmpty(apiKey) ? apiKey : (isTest ? SandboxApiKeyBox.Password : ProductionApiKeyBox.Password);
+            var svc    = new Services.PayrixService(pk, env);
+
+            var (merchant, _, apiErr) = await svc.GetMerchantAsync(merchantId);
+
+            bool found     = merchant != null;
+            bool isBoarded = merchant?.Status == 1 || merchant?.Status == 2;
+            var  envLabel  = isTest ? "Sandbox" : "Production";
+
+            VM2ResMerchantId.Text   = merchantId;
+            VM2ResEntityId.Text     = entityId  ?? "(none in DB)";
+            VM2ResEnvironment.Text  = isTest ? "Sandbox (IsTestMode = 1)" : "Production (IsTestMode = 0)";
+            VM2ResApiKey.Text       = MaskKey(apiKey);
+            VM2ResMerchantName.Text = merchant?.Name ?? "(not found)";
+
+            if (!found)
+            {
+                VM2ResStatus.Text       = "❌  NOT FOUND";
+                VM2ResStatus.Foreground = new WpfBrush(WpfColor.FromRgb(220, 38, 38));
+                VM2ResDiagnosis.Text    = apiErr ?? "Merchant not found in Payrix.";
+                VM2SetBanner("#DC2626", $"❌  Merchant NOT found in Payrix {envLabel}.");
+            }
+            else if (!isBoarded)
+            {
+                VM2ResStatus.Text       = $"⚠  Status {merchant!.Status} — not Boarded";
+                VM2ResStatus.Foreground = new WpfBrush(WpfColor.FromRgb(217, 119, 6));
+                VM2ResDiagnosis.Text    = $"Merchant exists but is not Boarded (status={merchant.Status}). Payments may fail.";
+                VM2SetBanner("#F59E0B", $"⚠  Merchant found but NOT Boarded (status={merchant.Status}).");
+            }
+            else
+            {
+                var statusText = merchant!.Status == 2 ? "Boarded" : "Active";
+                VM2ResStatus.Text       = $"✅  {statusText}";
+                VM2ResStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                VM2ResDiagnosis.Text    = $"Merchant exists and is {statusText} — payments should work.";
+                VM2SetBanner("#166534", $"✅  Merchant found and {statusText} in Payrix {envLabel}.");
+            }
+
+            VM2DetailPanel.Visibility  = Visibility.Visible;
+            VM2HealthCard.Visibility   = Visibility.Visible;
+            VM2RecreateCard.Visibility = Visibility.Visible;
+        }
+        catch (Exception ex)
+        {
+            VM2VerifyError.Text       = $"❌  Unexpected error: {ex.Message}";
+            VM2VerifyError.Visibility = Visibility.Visible;
+        }
+        finally { VM2VerifyBtn.IsEnabled = true; }
+    }
+
+    // ── Full Health Check ─────────────────────────────────────────────────────
+    private async void VM2RunHealthCheck_Click(object sender, RoutedEventArgs e)
+    {
+        VM2HealthBtn.IsEnabled           = false;
+        VM2HealthList.Items.Clear();
+        VM2HealthListBorder.Visibility   = Visibility.Visible;
+
+        var env    = _vm2IsTestMode ? Services.PayrixEnvironment.Sandbox : Services.PayrixEnvironment.Production;
+        var apiKey = !string.IsNullOrEmpty(_vm2ApiKey) ? _vm2ApiKey
+                   : (_vm2IsTestMode ? SandboxApiKeyBox.Password : ProductionApiKeyBox.Password);
+
+        void AddRow(string label, string result, bool? pass)
+        {
+            var color = pass == null ? "#6B7280" : (pass.Value ? "#166534" : "#DC2626");
+            var icon  = pass == null ? "⏳" : (pass.Value ? "☑" : "✗");
+            var bg    = pass == null ? "Transparent" : (pass.Value ? "#F0FDF4" : "#FEF2F2");
+            var panel = new System.Windows.Controls.Grid { Margin = new System.Windows.Thickness(0, 0, 0, 1) };
+            panel.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(240) });
+            panel.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
+            var border = new System.Windows.Controls.Border
+            {
+                Background    = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(bg)!,
+                Padding       = new System.Windows.Thickness(12, 8, 12, 8),
+                BorderBrush   = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString("#E5E7EB")!,
+                BorderThickness = new System.Windows.Thickness(0, 0, 0, 1),
+            };
+            var innerGrid = new System.Windows.Controls.Grid();
+            innerGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(240) });
+            innerGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
+            var labelTb = new System.Windows.Controls.TextBlock
+            {
+                Text       = $"{icon}  {label}",
+                FontSize   = 12, FontWeight = System.Windows.FontWeights.SemiBold,
+                Foreground = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(color)!,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center
+            };
+            var resultTb = new System.Windows.Controls.TextBlock
+            {
+                Text       = result,
+                FontSize   = 11.5, TextWrapping = System.Windows.TextWrapping.Wrap,
+                Foreground = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(color)!,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center, Margin = new System.Windows.Thickness(12, 0, 0, 0)
+            };
+            System.Windows.Controls.Grid.SetColumn(resultTb, 1);
+            innerGrid.Children.Add(labelTb);
+            innerGrid.Children.Add(resultTb);
+            border.Child = innerGrid;
+            VM2HealthList.Items.Add(border);
+        }
+
+        void UpdateLast(string result, bool pass)
+        {
+            if (VM2HealthList.Items.Count == 0) return;
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (VM2HealthList.Items[^1] is System.Windows.Controls.Border b && b.Child is System.Windows.Controls.Grid g)
+                {
+                    var color = pass ? "#166534" : "#DC2626";
+                    var icon  = pass ? "☑" : "✗";
+                    var bg    = pass ? "#F0FDF4" : "#FEF2F2";
+                    b.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(bg)!;
+                    if (g.Children[0] is System.Windows.Controls.TextBlock lt)
+                    {
+                        lt.Text       = $"{icon}  {lt.Text[2..]}";
+                        lt.Foreground = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(color)!;
+                    }
+                    if (g.Children[1] is System.Windows.Controls.TextBlock rt)
+                    {
+                        rt.Text       = result;
+                        rt.Foreground = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString(color)!;
+                    }
+                }
+            });
+        }
+
+        var companyId = VM2CompanyIdBox.Text.Trim();
+        var hostConn  = VM2MainConnStr() ?? "";
+
+        // 1. Host DB / Company
+        AddRow("1. Host DB / Company", "…", null);
+        try
+        {
+            var (name, _) = await Services.HostDbService.GetCompanyNameAsync(hostConn, companyId);
+            UpdateLast($"Company found: {name ?? "(no name)"}", true);
+        }
+        catch (Exception ex) { UpdateLast(ex.Message, false); }
+
+        // 2. ThirdPartySettings
+        AddRow("2. ThirdPartySettings", "…", null);
+        try
+        {
+            var (mid, _, _, eid, err) = await GetPaymentServiceEntityAsync(hostConn, companyId);
+            if (mid == null) UpdateLast(err ?? "No ThirdPartySettings (Type=19) found.", false);
+            else UpdateLast($"merchant={mid}  entity={eid}", true);
+        }
+        catch (Exception ex) { UpdateLast(ex.Message, false); }
+
+        // 3. BQSTable
+        AddRow("3. BQSTable", "…", null);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_vm2CompanyConnStr)) { UpdateLast("Company conn not resolved", false); }
+            else
+            {
+                var (text, ok) = await CheckBqsTableAsync(_vm2CompanyConnStr, _vm2MerchantId ?? "");
+                UpdateLast(text, ok);
+            }
+        }
+        catch (Exception ex) { UpdateLast(ex.Message, false); }
+
+        // 4. PaymentService
+        AddRow("4. PaymentService records", "…", null);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_vm2CompanyConnStr)) { UpdateLast("Company conn not resolved", false); }
+            else
+            {
+                var result = await CheckPaymentServiceAsync(_vm2CompanyConnStr);
+                UpdateLast(result, !result.StartsWith("0") && !result.Contains("error"));
+            }
+        }
+        catch (Exception ex) { UpdateLast(ex.Message, false); }
+
+        // 5. Entity (Payrix API)
+        AddRow("5. Entity (Payrix API)", "…", null);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_vm2EntityId)) { UpdateLast("No entity ID in DB", false); }
+            else
+            {
+                var svc = new Services.PayrixService(apiKey, env);
+                var (_, _, ename, _, _, err) = await svc.GetEntityAsync(entityId: _vm2EntityId);
+                if (err != null) UpdateLast(err, false);
+                else UpdateLast($"Entity found: {ename ?? _vm2EntityId}", true);
+            }
+        }
+        catch (Exception ex) { UpdateLast(ex.Message, false); }
+
+        // 6. Merchant (Payrix API)
+        AddRow("6. Merchant (Payrix API)", "…", null);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_vm2MerchantId)) { UpdateLast("No merchant ID in DB", false); }
+            else
+            {
+                var svc = new Services.PayrixService(apiKey, env);
+                var (merchant, _, err) = await svc.GetMerchantAsync(_vm2MerchantId);
+                if (err != null || merchant == null) UpdateLast(err ?? "Not found", false);
+                else UpdateLast($"{merchant.DisplayName} — {merchant.StatusLabel}", merchant.Status == 1 || merchant.Status == 2);
+            }
+        }
+        catch (Exception ex) { UpdateLast(ex.Message, false); }
+
+        // 7. Token test
+        AddRow("7. Token test (POST /tokens)", "…", null);
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_vm2MerchantId)) { UpdateLast("No merchant ID", false); }
+            else
+            {
+                var svc = new Services.PayrixService(apiKey, env);
+                var (tokenId, _, err) = await svc.TestTokenAsync(_vm2MerchantId);
+                if (err != null) UpdateLast(err, false);
+                else UpdateLast($"Token created: {tokenId}", true);
+            }
+        }
+        catch (Exception ex) { UpdateLast(ex.Message, false); }
+
+        VM2HealthBtn.IsEnabled = true;
+    }
+
+    // ── Re-create Merchant ────────────────────────────────────────────────────
+    private async void VM2RecreateMerchant_Click(object sender, RoutedEventArgs e)
+    {
+        VM2RecreateBtn.IsEnabled           = false;
+        VM2RecreateLogBorder.Visibility    = Visibility.Visible;
+        VM2RecreateLog.Foreground          = new WpfBrush(WpfColor.FromRgb(107, 114, 128));
+        VM2RecreateLog.Text                = "⏳  Starting…";
+
+        var sb = new System.Text.StringBuilder();
+        void Log(string msg) { sb.AppendLine(msg); Dispatcher.BeginInvoke(() => { VM2RecreateLog.Text = sb.ToString(); }); }
+
+        try
+        {
+            var companyConn = _vm2CompanyConnStr;
+            if (string.IsNullOrWhiteSpace(companyConn)) { Log("❌  Run 'Verify Merchant' first to load the company DB connection."); return; }
+
+            var s      = Services.SettingsService.Load();
+            var env    = _vm2IsTestMode ? Services.PayrixEnvironment.Sandbox : Services.PayrixEnvironment.Production;
+            var apiKey = !string.IsNullOrEmpty(_vm2ApiKey) ? _vm2ApiKey : (_vm2IsTestMode ? SandboxApiKeyBox.Password : ProductionApiKeyBox.Password);
+            var svc    = new Services.PayrixService(apiKey, env);
+
+            // Get company name for DBA
+            string dba = "BQE MERCHANT", email = s.CoreAccountEmail ?? "merchant@bqe.com";
+            try
+            {
+                var hostConn = VM2MainConnStr()!;
+                var companyId = VM2CompanyIdBox.Text.Trim();
+                var (name, _) = await Services.HostDbService.GetCompanyNameAsync(hostConn, companyId);
+                if (!string.IsNullOrWhiteSpace(name)) dba = name[..Math.Min(50, name.Length)];
+            }
+            catch { }
+
+            var custom = s.EntityCustomField ?? "";
+            Log($"Environment : {(_vm2IsTestMode ? "Sandbox" : "Production")}");
+            Log($"DBA         : {dba}");
+            Log($"Email       : {email}");
+            Log($"Custom      : {custom}");
+            Log("");
+
+            Log("Step 1: Creating entity…");
+            var (entityId, _, entityErr) = await svc.CreateEntityAsync(name: dba, email: email, custom: custom);
+            if (entityErr != null || string.IsNullOrEmpty(entityId)) { Log($"❌  Entity creation failed: {entityErr ?? "no ID returned"}"); return; }
+            Log($"  ✓ Entity: {entityId}");
+
+            Log("Step 2: Creating merchant…");
+            var (merchantId, _, merchantErr) = await svc.CreateMerchantAsync(entityId: entityId, dba: dba, mcc: "8931", email: email);
+            if (merchantErr != null || string.IsNullOrEmpty(merchantId)) { Log($"❌  Merchant creation failed: {merchantErr ?? "no ID returned"}"); return; }
+            Log($"  ✓ Merchant: {merchantId}");
+
+            Log("Step 3: Configuring merchant…");
+            var (configLog, _) = await svc.ConfigureMerchantAsync(merchantId, entityId, email);
+            Log(configLog);
+
+            Log("Step 4: Writing IDs back to ThirdPartySettings…");
+            try
+            {
+                await using var conn = new Microsoft.Data.SqlClient.SqlConnection(DbHelper.EnsureTrustedCert(companyConn));
+                await conn.OpenAsync();
+                var newJson = System.Text.Json.JsonSerializer.Serialize(new { MerchantID = merchantId, EntityID = entityId, IsTestMode = _vm2IsTestMode ? 1 : 0, ApiKey = apiKey });
+                await using var chk = new Microsoft.Data.SqlClient.SqlCommand("SELECT COUNT(1) FROM ThirdPartySettings WHERE Type=19", conn);
+                var count = (int)(await chk.ExecuteScalarAsync())!;
+                if (count > 0)
+                {
+                    await using var upd = new Microsoft.Data.SqlClient.SqlCommand("UPDATE ThirdPartySettings SET AccessToken=@j WHERE Type=19", conn);
+                    upd.Parameters.AddWithValue("@j", newJson);
+                    await upd.ExecuteNonQueryAsync();
+                    Log("  ✓ Updated ThirdPartySettings.");
+                }
+                else
+                {
+                    await using var ins = new Microsoft.Data.SqlClient.SqlCommand("INSERT INTO ThirdPartySettings (ID,Type,AccessToken,CreatedOn,UpdatedOn) VALUES (NEWID(),19,@j,GETUTCDATE(),GETUTCDATE())", conn);
+                    ins.Parameters.AddWithValue("@j", newJson);
+                    await ins.ExecuteNonQueryAsync();
+                    Log("  ✓ Inserted ThirdPartySettings row.");
+                }
+            }
+            catch (Exception dbEx) { Log($"  ⚠ DB write warning: {dbEx.Message}"); }
+
+            _vm2MerchantId = merchantId; _vm2EntityId = entityId;
+            Log(""); Log($"✅  Re-create complete!"); Log($"   Entity   : {entityId}"); Log($"   Merchant : {merchantId}");
+            VM2RecreateLog.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+        }
+        catch (Exception ex)
+        {
+            Log($"\n❌  Unexpected error: {ex.Message}");
+            VM2RecreateLog.Foreground = new WpfBrush(WpfColor.FromRgb(220, 38, 38));
+        }
+        finally { VM2RecreateBtn.IsEnabled = true; }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    private string VM2Env() =>
+        (VM2EnvBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Local";
+
+    private string? VM2MainConnStr()
+    {
+        var s = Services.SettingsService.Load();
+        return VM2Env() switch
+        {
+            "Staging"    => s.StagingMainDbConnectionString,
+            "Sprint"     => s.SprintMainDbConnectionString,
+            "Production" => s.ProductionMainDbConnectionString,
+            _            => s.LocalMainDbConnectionString,
+        };
+    }
+
+    private void VM2SetBanner(string hex, string message)
+    {
+        try
+        {
+            var col = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex);
+            VM2StatusBanner.Background  = new WpfBrush(WpfColor.FromArgb(30, col.R, col.G, col.B));
+            VM2StatusBanner.BorderBrush = new WpfBrush(col);
+            VM2StatusText.Foreground    = new WpfBrush(col);
+        }
+        catch { }
+        VM2StatusBanner.Visibility = Visibility.Visible;
+        VM2StatusText.Text = message;
+    }
+
+    private void VM2ShowLookupError(string msg)
+    {
+        VM2LookupErrorText.Text       = $"⚠  {msg}";
+        VM2LookupErrorText.Visibility = Visibility.Visible;
+    }
+
+    private void VM2ShowFetchError(string msg)
+    {
+        VM2FetchDbError.Text       = $"⚠  {msg}";
+        VM2FetchDbError.Visibility = Visibility.Visible;
+    }
+
+    private static async Task<(string text, bool ok)> CheckBqsTableAsync(string connStr, string merchantId)
+    {
+        connStr = DbHelper.EnsureTrustedCert(connStr);
+        try
+        {
+            await using var conn = new Microsoft.Data.SqlClient.SqlConnection(connStr);
+            await conn.OpenAsync();
+            await using var cmd = new Microsoft.Data.SqlClient.SqlCommand(
+                "SELECT TOP 1 ParamName, ParamValue FROM BQSTable WHERE ParamName LIKE 'PaymentService_SignUpProcess_Payrix%'", conn);
+            await using var rdr = await cmd.ExecuteReaderAsync();
+            if (!await rdr.ReadAsync()) return ("No signup row — merchant is Active", true);
+            var name = rdr.IsDBNull(0) ? "" : rdr.GetString(0);
+            var val  = rdr.IsDBNull(1) ? "" : rdr.GetString(1);
+            return ($"{name}: {val[..Math.Min(60, val.Length)]}…", true);
+        }
+        catch (Exception ex) { return ($"BQSTable error: {ex.Message}", false); }
+    }
+
+    private static async Task<string> CheckPaymentServiceAsync(string connStr)
+    {
+        connStr = DbHelper.EnsureTrustedCert(connStr);
+        try
+        {
+            await using var conn = new Microsoft.Data.SqlClient.SqlConnection(connStr);
+            await conn.OpenAsync();
+            await using var cmd = new Microsoft.Data.SqlClient.SqlCommand(
+                "SELECT ISNULL(SUM(CASE WHEN Method=0 THEN 1 ELSE 0 END),0), ISNULL(SUM(CASE WHEN Method=1 THEN 1 ELSE 0 END),0) FROM PaymentService WHERE ServiceType=6 AND IsActive=1", conn);
+            await using var rdr = await cmd.ExecuteReaderAsync();
+            if (!await rdr.ReadAsync()) return "No PaymentService records.";
+            var cc  = rdr.IsDBNull(0) ? 0 : rdr.GetInt32(0);
+            var ach = rdr.IsDBNull(1) ? 0 : rdr.GetInt32(1);
+            if (cc == 0 && ach == 0) return "0 records (ePayments not configured)";
+            return $"CC={(cc > 0 ? "☑" : "✗")}  ACH={(ach > 0 ? "☑" : "✗")}";
+        }
+        catch (Exception ex) { return $"PaymentService error: {ex.Message}"; }
+    }
 }
