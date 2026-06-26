@@ -23267,15 +23267,25 @@ public partial class MainWindow
         if (string.IsNullOrWhiteSpace(email)) { VM2ShowLookupError("Enter an email address."); return; }
 
         var connStr = VM2MainConnStr();
-        if (string.IsNullOrWhiteSpace(connStr)) { VM2ShowLookupError($"No {VM2Env()} Main DB connection string configured in Settings."); return; }
+        if (string.IsNullOrWhiteSpace(connStr))
+        {
+            VM2ShowLookupError($"No {VM2Env()} Main DB connection string configured. Go to Settings → Host DB Connection Strings.");
+            return;
+        }
 
         VM2FindCompaniesBtn.IsEnabled = false;
         VM2LookupErrorText.Visibility = Visibility.Collapsed;
         VM2CompanyPanel.Visibility    = Visibility.Collapsed;
+        VM2LookupErrorText.Text       = "⏳  Searching…";
+        VM2LookupErrorText.Foreground = new WpfBrush(WpfColor.FromRgb(107, 114, 128));
+        VM2LookupErrorText.Visibility = Visibility.Visible;
 
         try
         {
             var (results, err) = await Services.HostDbService.GetAllAccountCompaniesByEmailAsync(connStr, email);
+
+            VM2LookupErrorText.Visibility = Visibility.Collapsed;
+
             if (err != null) { VM2ShowLookupError(err); return; }
             if (results.Count == 0) { VM2ShowLookupError($"No companies found for {email}."); return; }
 
@@ -23286,12 +23296,12 @@ public partial class MainWindow
             foreach (var c in _vm2Companies)
                 VM2CompanyCombo.Items.Add(new System.Windows.Controls.ComboBoxItem
                 {
-                    Content = $"{c.CompanyName} — {c.CompanyId[..8]}…",
+                    Content = $"{(string.IsNullOrEmpty(c.CompanyName) ? c.CompanyId : c.CompanyName)} — {c.CompanyId[..Math.Min(8, c.CompanyId.Length)]}…",
                     Tag     = c.CompanyId
                 });
             VM2CompanyCombo.SelectedIndex = 0;
 
-            VM2CompanyLabel.Text       = $"Select Company ({_vm2Companies.Count} found for {email})";
+            VM2CompanyLabel.Text       = $"Select Company  ({_vm2Companies.Count} found for {email})";
             VM2CompanyPanel.Visibility = Visibility.Visible;
 
             if (_vm2Companies.Count == 1)
@@ -23300,7 +23310,7 @@ public partial class MainWindow
                 VM2CompanyIdBox.Text = _vm2Companies[0].CompanyId;
             }
         }
-        catch (Exception ex) { VM2ShowLookupError(ex.Message); }
+        catch (Exception ex) { VM2ShowLookupError($"DB error: {ex.Message}"); }
         finally { VM2FindCompaniesBtn.IsEnabled = true; }
     }
 
@@ -23728,6 +23738,7 @@ public partial class MainWindow
 
     private void VM2ShowLookupError(string msg)
     {
+        VM2LookupErrorText.Foreground = new WpfBrush(WpfColor.FromRgb(220, 38, 38));
         VM2LookupErrorText.Text       = $"⚠  {msg}";
         VM2LookupErrorText.Visibility = Visibility.Visible;
     }
