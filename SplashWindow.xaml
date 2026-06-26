@@ -1,0 +1,27 @@
+<Window x:Class="PayrixLauncher.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Payrix Tools — Setup"
+        Width="420" Height="160"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True">
+    <Border Background="#1E1B2E" CornerRadius="12"
+            BorderBrush="#6D28D9" BorderThickness="1">
+        <StackPanel Margin="28,24">
+            <TextBlock Text="⚙  Payrix Tools — First Run Setup"
+                       Foreground="#A78BFA" FontSize="14" FontWeight="SemiBold"
+                       Margin="0,0,0,12"/>
+            <TextBlock x:Name="StatusText"
+                       Text="Initialising…"
+                       Foreground="#D1D5DB" FontSize="12"
+                       TextWrapping="Wrap" Margin="0,0,0,16"/>
+            <ProgressBar IsIndeterminate="True"
+                         Height="6" Background="#374151"
+                         Foreground="#6D28D9"/>
+        </StackPanel>
+    </Border>
+</Window>

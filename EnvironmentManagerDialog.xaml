@@ -1,0 +1,436 @@
+<Window x:Class="PayrixLauncher.EnvironmentManagerDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PayrixLauncher.Models"
+        Title="Manage Environments" Width="780" Height="520"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" ResizeMode="CanResizeWithGrip"
+        MinWidth="560" MinHeight="360"
+        FontFamily="Segoe UI">
+    <Border Background="{DynamicResource WindowBg}"
+            BorderBrush="{DynamicResource CardBorder}"
+            BorderThickness="1" CornerRadius="14">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="46"/>   <!-- title bar -->
+                <RowDefinition Height="*"/>    <!-- content -->
+                <RowDefinition Height="52"/>   <!-- footer -->
+            </Grid.RowDefinitions>
+
+            <!-- Title bar -->
+            <Border Grid.Row="0" CornerRadius="14,14,0,0"
+                    Background="{DynamicResource CardBg}"
+                    BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="16,0">
+                    <TextBlock Text="🌐  Manage Environments" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource PrimaryText}" VerticalAlignment="Center"/>
+                    <Button HorizontalAlignment="Right" Content="✕" Width="28" Height="28"
+                            FontSize="12" Click="Close_Click"
+                            Background="Transparent" BorderThickness="0"
+                            Foreground="{DynamicResource SubText}" Cursor="Hand">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}" CornerRadius="7">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#EF4444"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Content: 2-column -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200" MinWidth="140"/>
+                    <ColumnDefinition Width="4"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: environment list -->
+                <Border BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,1,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <ListBox x:Name="EnvListBox" Grid.Row="0"
+                                 Background="Transparent" BorderThickness="0"
+                                 SelectionChanged="EnvList_SelectionChanged"
+                                 Padding="6,6">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="10,7"/>
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="Cursor" Value="Hand"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                                        CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter TargetName="Bd" Property="Background" Value="#6366F120"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource TabHoverBg}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" FontSize="12.5"
+                                               Foreground="{DynamicResource PrimaryText}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <!-- Add / Duplicate / Delete -->
+                        <Border Grid.Row="1" Padding="8,6"
+                                BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,1,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="＋" ToolTip="New environment"
+                                        Width="28" Height="28" FontSize="14"
+                                        Click="AddEnv_Click"
+                                        Background="Transparent" BorderThickness="0"
+                                        Foreground="{DynamicResource SubText}" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="7"
+                                                    Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource TabHoverBg}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <Button Content="⎘" ToolTip="Duplicate"
+                                        Width="28" Height="28" FontSize="13" Margin="2,0"
+                                        Click="DupEnv_Click"
+                                        Background="Transparent" BorderThickness="0"
+                                        Foreground="{DynamicResource SubText}" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="7"
+                                                    Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource TabHoverBg}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <Button Content="⬆" ToolTip="Import from file"
+                                        Width="28" Height="28" FontSize="12" Margin="2,0"
+                                        Click="ImportEnv_Click"
+                                        Background="Transparent" BorderThickness="0"
+                                        Foreground="{DynamicResource SubText}" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="7"
+                                                    Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource TabHoverBg}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                                <Button Content="🗑" ToolTip="Delete"
+                                        Width="28" Height="28" FontSize="12" Margin="2,0"
+                                        Click="DeleteEnv_Click"
+                                        Background="Transparent" BorderThickness="0"
+                                        Foreground="{DynamicResource SubText}" Cursor="Hand">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="7"
+                                                    Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#EF444420"/>
+                                                    <Setter Property="Foreground" Value="#EF4444"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Stretch"
+                              Background="{DynamicResource CardBorder}" Cursor="SizeWE"/>
+
+                <!-- Right: variable editor -->
+                <Grid Grid.Column="2" Margin="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="5"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Env name editor -->
+                    <Border Grid.Row="0" Padding="16,10"
+                            BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,0,0,1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Environment name" FontSize="11"
+                                           Foreground="{DynamicResource SubText}" Margin="0,0,0,4"/>
+                                <TextBox x:Name="EnvNameBox" Height="32" Padding="10,0"
+                                         VerticalContentAlignment="Center" FontSize="13"
+                                         TextChanged="EnvName_Changed"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="⬇ Export" Height="32"
+                                    Padding="12,0" Margin="12,18,0,0" FontSize="12"
+                                    Click="ExportEnv_Click"
+                                    Background="{DynamicResource CardBg}"
+                                    Foreground="{DynamicResource SubText}"
+                                    BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="8"
+                                                Padding="{TemplateBinding Padding}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Opacity" Value="0.8"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- Column headers -->
+                    <Grid Grid.Row="1" Margin="16,8,16,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="1" Text="Variable" FontSize="11"
+                                   Foreground="{DynamicResource SubText}" FontWeight="SemiBold"/>
+                        <TextBlock Grid.Column="2" Text="Value" FontSize="11"
+                                   Foreground="{DynamicResource SubText}" FontWeight="SemiBold"/>
+                    </Grid>
+
+                    <!-- Variables grid -->
+                    <DataGrid x:Name="VarsGrid" Grid.Row="2"
+                              Margin="8,0,8,8"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="True"
+                              CanUserDeleteRows="True"
+                              HeadersVisibility="None"
+                              BorderThickness="1"
+                              BorderBrush="{DynamicResource CardBorder}"
+                              Background="{DynamicResource InputBg}"
+                              RowBackground="{DynamicResource InputBg}"
+                              AlternatingRowBackground="{DynamicResource CardBg}"
+                              GridLinesVisibility="None"
+                              SelectionMode="Single"
+                              CellEditEnding="Vars_CellEditEnding">
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Width="30" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"/>
+                            <DataGridTextColumn Width="*" Binding="{Binding Key, UpdateSourceTrigger=PropertyChanged}" Header="Variable">
+                                <DataGridTextColumn.EditingElementStyle>
+                                    <Style TargetType="TextBox"><Setter Property="BorderThickness" Value="0"/><Setter Property="FontFamily" Value="Cascadia Code, Consolas"/></Style>
+                                </DataGridTextColumn.EditingElementStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#A78BFA"/>
+                                        <Setter Property="FontFamily" Value="Cascadia Code, Consolas"/>
+                                        <Setter Property="FontSize" Value="12"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Width="*" Binding="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Header="Value">
+                                <DataGridTextColumn.EditingElementStyle>
+                                    <Style TargetType="TextBox"><Setter Property="BorderThickness" Value="0"/></Style>
+                                </DataGridTextColumn.EditingElementStyle>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="12"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Splitter -->
+                    <GridSplitter Grid.Row="3" Height="5" HorizontalAlignment="Stretch"
+                                  Background="{DynamicResource CardBorder}" Cursor="SizeNS"/>
+
+                    <!-- Auth section -->
+                    <Border Grid.Row="4" BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,1,0,0">
+                        <StackPanel Margin="16,10,16,12">
+
+                            <!-- Section header -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="🔐" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Authorization" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryText}" VerticalAlignment="Center"/>
+                                <TextBlock Text="  —  applied automatically when this environment is active"
+                                           FontSize="11" Foreground="{DynamicResource SubText}" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Auth type picker -->
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="180"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Type" FontSize="12" Foreground="{DynamicResource SubText}" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="EnvAuthTypeBox" Grid.Column="1" Height="30" FontSize="12"
+                                          SelectedIndex="0" SelectionChanged="EnvAuthType_Changed">
+                                    <ComboBoxItem Content="No Auth"/>
+                                    <ComboBoxItem Content="API Key"/>
+                                    <ComboBoxItem Content="Bearer Token"/>
+                                    <ComboBoxItem Content="Basic Auth"/>
+                                </ComboBox>
+                            </Grid>
+
+                            <!-- API Key fields -->
+                            <StackPanel x:Name="EnvApiKeyPanel" Visibility="Collapsed">
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Key name" FontSize="12" Foreground="{DynamicResource SubText}" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="EnvApiKeyNameBox" Grid.Column="1" Height="30" Padding="8,0"
+                                             VerticalContentAlignment="Center" Text="APIKEY"
+                                             TextChanged="EnvAuth_Changed"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Key value" FontSize="12" Foreground="{DynamicResource SubText}" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="EnvApiKeyValueBox" Grid.Column="1" Height="30" Padding="8,0"
+                                             VerticalContentAlignment="Center"
+                                             TextChanged="EnvAuth_Changed"/>
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="180"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Add to" FontSize="12" Foreground="{DynamicResource SubText}" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="EnvApiKeyLocationBox" Grid.Column="1" Height="30" FontSize="12"
+                                              SelectionChanged="EnvAuth_Changed">
+                                        <ComboBoxItem Content="Header"/>
+                                        <ComboBoxItem Content="Query Params"/>
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Bearer Token fields -->
+                            <StackPanel x:Name="EnvBearerPanel" Visibility="Collapsed">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Token" FontSize="12" Foreground="{DynamicResource SubText}" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="EnvBearerTokenBox" Grid.Column="1" Height="30" Padding="8,0"
+                                             VerticalContentAlignment="Center"
+                                             TextChanged="EnvAuth_Changed"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Basic Auth fields -->
+                            <StackPanel x:Name="EnvBasicPanel" Visibility="Collapsed">
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Username" FontSize="12" Foreground="{DynamicResource SubText}" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="EnvBasicUserBox" Grid.Column="1" Height="30" Padding="8,0"
+                                             VerticalContentAlignment="Center"
+                                             TextChanged="EnvAuth_Changed"/>
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Password" FontSize="12" Foreground="{DynamicResource SubText}" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="EnvBasicPassBox" Grid.Column="1" Height="30" Padding="8,0"
+                                             VerticalContentAlignment="Center"
+                                             TextChanged="EnvAuth_Changed"/>
+                                </Grid>
+                            </StackPanel>
+
+                        </StackPanel>
+                    </Border>
+
+                </Grid>
+            </Grid>
+
+            <!-- Footer -->
+            <Border Grid.Row="2" CornerRadius="0,0,14,14"
+                    Background="{DynamicResource CardBg}"
+                    BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,1,0,0"
+                    Padding="16,0">
+                <Grid>
+                    <TextBlock x:Name="FooterHint"
+                               Text="Use {{variableName}} in URLs, headers, and body to inject values."
+                               FontSize="11.5" Foreground="{DynamicResource SubText}"
+                               VerticalAlignment="Center"/>
+                    <Button HorizontalAlignment="Right" Content="Close" Width="90" Height="32"
+                            Click="Close_Click">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="#6366F1" Offset="0"/>
+                                            <GradientStop Color="#8B5CF6" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="9">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
