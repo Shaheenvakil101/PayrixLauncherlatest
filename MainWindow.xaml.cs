@@ -23274,9 +23274,8 @@ public partial class MainWindow
         }
 
         VM2FindCompaniesBtn.IsEnabled = false;
-        VM2LookupErrorText.Visibility = Visibility.Collapsed;
         VM2CompanyPanel.Visibility    = Visibility.Collapsed;
-        VM2LookupErrorText.Text       = "⏳  Searching…";
+        VM2LookupErrorText.Text       = $"⏳  Searching {VM2Env()} DB…";
         VM2LookupErrorText.Foreground = new WpfBrush(WpfColor.FromRgb(107, 114, 128));
         VM2LookupErrorText.Visibility = Visibility.Visible;
 
