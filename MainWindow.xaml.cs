@@ -9562,6 +9562,91 @@ WHERE {filter}
 
     // ── Verify Merchant ───────────────────────────────────────────────────────
 
+    private string VmMainConnStr()
+    {
+        var s = Services.SettingsService.Load();
+        var env = (VerifyMerchantEnvBox?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Local";
+        return env switch
+        {
+            "Staging"    => s.StagingMainDbConnectionString,
+            "Sprint"     => s.SprintMainDbConnectionString,
+            "Production" => s.ProductionMainDbConnectionString,
+            _            => s.LocalMainDbConnectionString,
+        } ?? "";
+    }
+
+    private async void VmFindCompanies_Click(object sender, RoutedEventArgs e)
+    {
+        var email = VmEmailBox?.Text?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            VmLookupErrorText.Text = "Enter an email address first.";
+            VmLookupErrorText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
+            VmLookupErrorText.Visibility = Visibility.Visible;
+            return;
+        }
+
+        var connStr = VmMainConnStr();
+        if (string.IsNullOrWhiteSpace(connStr))
+        {
+            var env = (VerifyMerchantEnvBox?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Local";
+            VmLookupErrorText.Text = $"No {env} Main DB connection string configured. Go to Settings → Host DB Connection Strings.";
+            VmLookupErrorText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
+            VmLookupErrorText.Visibility = Visibility.Visible;
+            return;
+        }
+
+        VmFindCompaniesBtn.IsEnabled = false;
+        VmCompanyPanel.Visibility = Visibility.Collapsed;
+        VmLookupErrorText.Text = "⏳  Searching…";
+        VmLookupErrorText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(107, 114, 128));
+        VmLookupErrorText.Visibility = Visibility.Visible;
+
+        try
+        {
+            var (results, err) = await Services.HostDbService.GetAllAccountCompaniesByEmailAsync(connStr, email);
+            if (err != null)
+            {
+                VmLookupErrorText.Text = $"DB error: {err}";
+                VmLookupErrorText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
+                return;
+            }
+            if (results == null || results.Count == 0)
+            {
+                VmLookupErrorText.Text = $"No companies found for: {email}";
+                VmLookupErrorText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
+                return;
+            }
+
+            VmCompanyCombo.Items.Clear();
+            foreach (var (accountId, companyId, companyName) in results)
+            {
+                var item = new System.Windows.Controls.ComboBoxItem
+                {
+                    Content = $"{companyName} ({companyId[..8]}…)",
+                    Tag     = companyId
+                };
+                VmCompanyCombo.Items.Add(item);
+            }
+            VmCompanyCombo.SelectedIndex = 0;
+            VmCompanyLabel.Text = $"{results.Count} found for {email} — Select:";
+            VmCompanyPanel.Visibility = Visibility.Visible;
+            VmLookupErrorText.Visibility = Visibility.Collapsed;
+        }
+        catch (Exception ex)
+        {
+            VmLookupErrorText.Text = $"Error: {ex.Message}";
+            VmLookupErrorText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
+        }
+        finally { VmFindCompaniesBtn.IsEnabled = true; }
+    }
+
+    private void VmCompanyCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (VmCompanyCombo.SelectedItem is System.Windows.Controls.ComboBoxItem item && item.Tag is string id)
+            VerifyMerchantCompanyBox.Text = id;
+    }
+
     private async void VerifyMerchantBtn_Click(object sender, RoutedEventArgs e)
     {
         var companyId = VerifyMerchantCompanyBox.Text.Trim();

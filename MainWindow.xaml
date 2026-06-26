@@ -1844,9 +1844,61 @@
                             BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
                             Padding="16,14">
                         <StackPanel>
-                            <TextBlock Text="Enter a BQE Core Company ID to check whether the Payrix merchant stored in the payment-service DB actually exists in Payrix."
+                            <TextBlock Text="Enter an email to find companies, or enter a Company ID directly."
                                        FontSize="12" Foreground="{DynamicResource SubText}"
                                        TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+                            <!-- Email lookup row -->
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Email:" FontWeight="SemiBold" FontSize="12"
+                                           Foreground="{DynamicResource SubLabelFg}"
+                                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <Border Grid.Column="1" CornerRadius="6" Height="34"
+                                        Background="{DynamicResource InputBg}"
+                                        BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
+                                        Padding="10,0" Margin="0,0,8,0">
+                                    <TextBox x:Name="VmEmailBox"
+                                             Background="Transparent" BorderThickness="0"
+                                             VerticalAlignment="Center" FontSize="12"
+                                             Foreground="{DynamicResource PrimaryText}"/>
+                                </Border>
+                                <Button x:Name="VmFindCompaniesBtn" Grid.Column="2"
+                                        Content="🔍  Find Companies"
+                                        Height="34" Padding="14,0" FontSize="12"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Background="#6366F1"
+                                        Click="VmFindCompanies_Click"/>
+                            </Grid>
+
+                            <!-- Company dropdown (shown after search) -->
+                            <StackPanel x:Name="VmCompanyPanel" Visibility="Collapsed" Margin="0,0,0,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="VmCompanyLabel"
+                                               Text="Select Company:" FontWeight="SemiBold" FontSize="12"
+                                               Foreground="{DynamicResource SubLabelFg}"
+                                               VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <ComboBox x:Name="VmCompanyCombo" Grid.Column="1"
+                                              Height="34" FontSize="12"
+                                              Background="{DynamicResource InputBg}"
+                                              Foreground="{DynamicResource PrimaryText}"
+                                              BorderBrush="{DynamicResource CardBorder}"
+                                              SelectionChanged="VmCompanyCombo_SelectionChanged"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Lookup error -->
+                            <TextBlock x:Name="VmLookupErrorText" Visibility="Collapsed"
+                                       FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,8"
+                                       Foreground="#EF4444"/>
 
                             <!-- Company ID row -->
                             <Grid Margin="0,0,0,10">

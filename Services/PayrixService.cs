@@ -2389,11 +2389,10 @@ public class PayrixService
         const int apiPageSize = 100;
         try
         {
-            var all        = new List<Merchant>();
-            int page       = 1;
-            int serverTotal = -1; // -1 = unknown until first response
+            var all  = new List<Merchant>();
+            int page = 1;
 
-            while (limit == 0 || all.Count < limit)
+            while (true)
             {
                 var resp = await _client.GetAsync(
                     $"/merchants?page[limit]={apiPageSize}&page[number]={page}").ConfigureAwait(false);
@@ -2406,15 +2405,10 @@ public class PayrixService
                 var parsed = JsonSerializer.Deserialize<PayrixMerchantResponse>(lastJson, JsonOptions);
                 var data   = parsed?.Response?.Data ?? [];
 
-                // Only trust server total when it's a positive number
-                var t = parsed?.Response?.Total ?? 0;
-                if (t > 0 && serverTotal < 0) serverTotal = t;
-
                 if (data.Count == 0) break;
                 all.AddRange(data);
-
-                // Stop when server-reported total is reached
-                if (serverTotal > 0 && all.Count >= serverTotal) break;
+                if (data.Count < apiPageSize) break;  // last page — fewer results than requested
+                if (limit > 0 && all.Count >= limit) break;
 
                 page++;
             }
