@@ -1,0 +1,154 @@
+0:01:10 Tab1 FinishNav8
+0:01:10 Tab1 PageLoad
+0:01:33 Tab1 StartNav9 #link
+0:01:33 Tab1 FinishNav9
+0:01:33 Tab1 PageLoad
+0:01:39 Tab1 StartNav10 #link
+0:01:39 Tab1 FinishNav10
+0:01:39 Tab1 PageLoad
+0:01:50 Tab1 StartNav11 #link
+0:01:50 Tab1 FinishNav11
+0:01:50 Tab1 PageLoad
+0:01:50 Tab1 StartNav12 #link
+0:01:51 Tab1 FinishNav12
+0:01:51 Tab1 PageLoad
+0:02:24 Memory Pressure: Critical
+0:02:38 Tab1 StartNav13 #link
+0:02:38 Tab1 FinishNav13
+0:02:38 Tab1 PageLoad
+0:02:45 Tab1 StartNav14 #link
+0:02:45 Tab1 FinishNav14
+0:02:45 Tab1 PageLoad
+0:02:49 Tab1 StartNav15 #link
+0:02:49 Tab1 FinishNav15
+0:02:49 Tab1 PageLoad
+0:02:55 Tab1 StartNav16 #link
+0:02:55 Tab1 FinishNav16
+0:02:55 Tab1 PageLoad
+0:03:00 Tab1 StartNav17 #link
+0:03:00 Tab1 FinishNav17
+0:03:00 Tab1 PageLoad
+0:03:19 Tab1 StartNav18 #link
+0:03:19 Tab1 FinishNav18
+0:03:19 Tab1 PageLoad
+0:03:32 Tab1 StartNav19 #link
+0:03:33 Tab1 FinishNav19
+0:03:33 Tab1 PageLoad
+0:03:46 Microsoft.Clipboard.WriteText
+0:03:59 Tab1 StartNav20 #link
+0:03:59 Tab1 FinishNav20
+0:03:59 Tab1 PageLoad
+0:04:32 Memory Pressure: Critical
+0:05:28 Memory Pressure: Critical
+0:05:35 Memory Pressure: Critical
+0:05:46 Tab1 StartNav21 #link
+0:05:46 Tab1 FinishNav21
+0:05:46 Tab1 PageLoad
+0:06:10 Tab1 StartNav22 #link
+0:06:10 Tab1 FinishNav22
+0:06:10 Tab1 PageLoad
+0:06:13 Tab2 StartNav23 #link
+0:06:13 Tab2 FinishNav23
+0:06:13 Tab2 PageLoad
+0:06:15 Tab1 StartNav24 #link
+0:06:15 Tab1 FinishNav24
+0:06:15 Tab1 PageLoad
+0:06:32 Tab1 StartNav25 #link
+0:06:32 Tab1 FinishNav25
+0:06:32 Tab1 PageLoad
+0:06:40 Tab1 StartNav26 #link
+0:06:40 Tab1 FinishNav26
+0:06:41 Tab1 PageLoad
+0:07:13 Tab1 StartNav27 #link
+0:07:13 Tab1 FinishNav27
+0:07:14 Tab1 PageLoad
+0:07:15 Tab2 StartNav28 #link
+0:07:15 Tab2 FinishNav28
+0:07:15 Tab2 PageLoad
+0:07:17 Memory Pressure: Critical
+0:07:18 Tab1 StartNav29 #link
+0:07:18 Tab1 FinishNav29
+0:07:18 Tab1 PageLoad
+0:29:59 Tab1 StartNav30 #link
+0:29:59 Tab1 FinishNav30
+0:29:59 Tab1 PageLoad
+0:30:13 Tab2 StartNav31 #link
+0:30:13 Tab2 FinishNav31
+0:30:13 Tab2 PageLoad
+0:30:20 Memory Pressure: Critical
+0:30:20 Tab1 StartNav32 #link
+0:30:20 Tab1 FinishNav32
+0:30:20 Tab1 PageLoad
+0:30:32 Tab1 StartNav33 #link
+0:30:32 Tab1 FinishNav33
+0:30:32 Tab1 PageLoad
+0:30:35 Tab2 StartNav34 #link
+0:30:35 Tab2 FinishNav34
+0:30:35 Tab2 PageLoad
+0:30:37 Memory Pressure: Critical
+0:30:37 Tab1 StartNav35 #link
+0:30:37 Tab1 FinishNav35
+0:30:37 Tab1 PageLoad
+0:30:42 Tab1 StartNav36 #link
+0:30:42 Tab1 FinishNav36
+0:30:42 Tab1 PageLoad
+0:30:48 Tab1 StartNav37 #link
+0:30:48 Tab1 FinishNav37
+0:30:48 Tab1 PageLoad
+0:30:50 Tab2 StartNav38 #link
+0:30:50 Tab2 FinishNav38
+0:30:50 Tab2 PageLoad
+0:30:53 Tab1 StartNav39 #link
+0:30:53 Tab1 FinishNav39
+0:30:53 Tab1 PageLoad
+0:31:00 Tab1 StartNav40 #link
+0:31:00 Tab1 FinishNav40
+0:31:00 Tab1 PageLoad
+0:31:42 Tab1 StartNav41 #link
+0:31:42 Tab1 FinishNav41
+0:31:42 Tab1 PageLoad
+0:31:49 Tab1 StartNav42 #link
+0:31:49 Tab1 FinishNav42
+0:31:49 Tab1 PageLoad
+0:31:58 Tab1 StartNav43 #link
+0:31:58 Tab1 FinishNav43
+0:31:58 Tab1 PageLoad
+0:32:15 Tab1 StartNav44 #link
+0:32:15 Tab1 FinishNav44
+0:32:15 Tab1 PageLoad
+0:32:32 Tab1 StartNav45 #link
+0:32:32 Tab1 FinishNav45
+0:32:32 Tab1 PageLoad
+0:32:40 Tab1 StartNav46 #link
+0:32:41 Tab1 FinishNav46
+0:32:41 Tab1 PageLoad
+0:32:45 Tab1 StartNav47 #link
+0:32:45 Tab1 FinishNav47
+0:32:45 Tab1 PageLoad
+0:32:51 Tab1 StartNav48 #link
+0:32:52 Tab1 FinishNav48
+0:32:52 Tab1 PageLoad
+0:33:06 Tab1 StartNav49 #link
+0:33:06 Tab1 FinishNav49
+0:33:06 Tab1 PageLoad
+0:34:52 Tab1 StartNav50 #link
+0:34:52 Tab1 FinishNav50
+0:34:52 Tab1 PageLoad
+0:35:19 Tab2 StartNav51 #link
+0:35:19 Tab2 FinishNav51
+0:35:19 Tab2 PageLoad
+0:35:22 Memory Pressure: Critical
+0:35:22 Tab1 StartNav52 #link
+0:35:22 Tab1 FinishNav52
+0:35:22 Tab1 PageLoad
+0:35:29 Tab1 StartNav53 #link
+0:35:29 Tab1 FinishNav53
+0:35:29 Tab1 PageLoad
+0:35:40 Tab2 StartNav54 #link
+0:35:40 Tab2 FinishNav54
+0:35:40 Tab2 PageLoad
+0:35:42 Tab1 StartNav55 #link
+0:35:42 Tab1 FinishNav55
+0:35:42 Tab1 PageLoad
+0:36:05 Memory Pressure: Critical
+0:38:38 Microsoft.UnloadController.IsUnclosableApp_IsNotWebApp

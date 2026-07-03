@@ -1,0 +1,95 @@
+{
+  "ActiveId": "",
+  "Environments": [
+    {
+      "Id": "7d31ef2f954c414598bfc2e8a8db3fd5",
+      "Name": "Local",
+      "Variables": [
+        {
+          "Enabled": true,
+          "Key": "baseUrl",
+          "Value": "http://localhost/BQECoreApi"
+        },
+        {
+          "Enabled": true,
+          "Key": "apiKey",
+          "Value": ""
+        },
+        {
+          "Enabled": true,
+          "Key": "merchant",
+          "Value": ""
+        }
+      ],
+      "AuthTypeIndex": 0,
+      "AuthApiKeyName": "APIKEY",
+      "AuthApiKeyValue": "",
+      "AuthApiKeyLocation": 0,
+      "AuthBearerToken": "",
+      "AuthBasicUser": "",
+      "AuthBasicPass": "",
+      "LastUrl": "",
+      "LastMethod": "GET"
+    },
+    {
+      "Id": "c895af622cf44d75bfed5b2bd4cb85a4",
+      "Name": "Sandbox",
+      "Variables": [
+        {
+          "Enabled": true,
+          "Key": "baseUrl",
+          "Value": "https://test.api.payrix.com"
+        },
+        {
+          "Enabled": true,
+          "Key": "apiKey",
+          "Value": ""
+        },
+        {
+          "Enabled": true,
+          "Key": "merchant",
+          "Value": ""
+        }
+      ],
+      "AuthTypeIndex": 0,
+      "AuthApiKeyName": "APIKEY",
+      "AuthApiKeyValue": "",
+      "AuthApiKeyLocation": 0,
+      "AuthBearerToken": "",
+      "AuthBasicUser": "",
+      "AuthBasicPass": "",
+      "LastUrl": "",
+      "LastMethod": "GET"
+    },
+    {
+      "Id": "f46b91651e284e4ca2ae21fa8c3f8b9c",
+      "Name": "Production",
+      "Variables": [
+        {
+          "Enabled": true,
+          "Key": "baseUrl",
+          "Value": "https://api.payrix.com"
+        },
+        {
+          "Enabled": true,
+          "Key": "apiKey",
+          "Value": ""
+        },
+        {
+          "Enabled": true,
+          "Key": "merchant",
+          "Value": ""
+        }
+      ],
+      "AuthTypeIndex": 0,
+      "AuthApiKeyName": "APIKEY",
+      "AuthApiKeyValue": "",
+      "AuthApiKeyLocation": 0,
+      "AuthBearerToken": "",
+      "AuthBasicUser": "",
+      "AuthBasicPass": "",
+      "LastUrl": "",
+      "LastMethod": "GET"
+    }
+  ]
+}

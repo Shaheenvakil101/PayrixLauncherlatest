@@ -2389,10 +2389,11 @@ public class PayrixService
         const int apiPageSize = 100;
         try
         {
-            var all  = new List<Merchant>();
-            int page = 1;
+            var all        = new List<Merchant>();
+            int page       = 1;
+            int serverTotal = -1; // -1 = unknown until first response
 
-            while (true)
+            while (limit == 0 || all.Count < limit)
             {
                 var resp = await _client.GetAsync(
                     $"/merchants?page[limit]={apiPageSize}&page[number]={page}").ConfigureAwait(false);
@@ -2405,10 +2406,15 @@ public class PayrixService
                 var parsed = JsonSerializer.Deserialize<PayrixMerchantResponse>(lastJson, JsonOptions);
                 var data   = parsed?.Response?.Data ?? [];
 
+                // Only trust server total when it's a positive number
+                var t = parsed?.Response?.Total ?? 0;
+                if (t > 0 && serverTotal < 0) serverTotal = t;
+
                 if (data.Count == 0) break;
                 all.AddRange(data);
-                if (data.Count < apiPageSize) break;  // last page — fewer results than requested
-                if (limit > 0 && all.Count >= limit) break;
+
+                // Stop when server-reported total is reached
+                if (serverTotal > 0 && all.Count >= serverTotal) break;
 
                 page++;
             }
@@ -3266,6 +3272,93 @@ public class PayrixService
         return null;
     }
 
+    // ── Create refund / return / ACH refund in Payrix ────────────────────────
+    /// <summary>
+    /// webhookType: "CC Refund" (type 5) | "CC Return" (type 4) | "ACH Refund" (type 8)
+    /// fortxnId: original transaction ID to refund against.
+    /// amountCents: 0 = full refund.
+    /// Returns (newTxnId, rawJson, error).
+    /// </summary>
+    public async Task<(string? txnId, string rawJson, string? error)> CreatePayrixRefundAsync(
+        string webhookType, string fortxnId, string merchantId, long amountCents = 0)
+    {
+        if (webhookType.Equals("ACH Return", StringComparison.OrdinalIgnoreCase))
+            return (null, "", "ACH Returns are bank-initiated and cannot be created via the Payrix API.");
+
+        int txnType = webhookType switch
+        {
+            var t when t.Equals("CC Refund",  StringComparison.OrdinalIgnoreCase) => 5,
+            var t when t.Equals("CC Return",  StringComparison.OrdinalIgnoreCase) => 4,
+            var t when t.Equals("ACH Refund", StringComparison.OrdinalIgnoreCase) => 8,
+            _ => throw new ArgumentException($"Unsupported webhook type: {webhookType}")
+        };
+
+        var body = new Dictionary<string, object?>
+        {
+            ["type"]     = txnType,
+            ["fortxn"]   = fortxnId.Trim(),
+            ["merchant"] = merchantId.Trim(),
+            ["origin"]   = 2,
+        };
+        if (amountCents > 0) body["total"] = amountCents;
+
+        var json    = System.Text.Json.JsonSerializer.Serialize(body, JsonOptions);
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        try
+        {
+            var resp = await _client.PostAsync("/txns", content).ConfigureAwait(false);
+            var raw  = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(raw))
+                return (null, raw, $"Empty response (HTTP {(int)resp.StatusCode})");
+
+            using var doc  = System.Text.Json.JsonDocument.Parse(raw);
+            var root = doc.RootElement;
+
+            static string? ExtractErr(System.Text.Json.JsonElement r)
+            {
+                System.Text.Json.JsonElement errs;
+                if (r.TryGetProperty("errors", out errs) ||
+                    (r.TryGetProperty("response", out var rr) && rr.TryGetProperty("errors", out errs)))
+                {
+                    if (errs.ValueKind == System.Text.Json.JsonValueKind.Array)
+                        foreach (var e in errs.EnumerateArray())
+                            foreach (var key in new[] { "msg", "message", "detail" })
+                                if (e.TryGetProperty(key, out var m) && m.ValueKind == System.Text.Json.JsonValueKind.String)
+                                    return m.GetString();
+                }
+                foreach (var key in new[] { "message", "error", "detail", "msg" })
+                    if (r.TryGetProperty(key, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String)
+                        return v.GetString();
+                return null;
+            }
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var errMsg = ExtractErr(root) ?? $"HTTP {(int)resp.StatusCode}: {resp.ReasonPhrase}";
+                return (null, raw, $"{errMsg}  [{raw[..Math.Min(raw.Length, 200)]}]");
+            }
+
+            var apiErr = ExtractErr(root);
+            if (apiErr != null) return (null, raw, apiErr);
+
+            string? newId = null;
+            if (root.TryGetProperty("response", out var response) &&
+                response.TryGetProperty("data", out var data))
+            {
+                if (data.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    foreach (var el in data.EnumerateArray())
+                        if (el.TryGetProperty("id", out var p)) { newId = p.GetString(); break; }
+                else if (data.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    if (data.TryGetProperty("id", out var p2)) newId = p2.GetString();
+            }
+
+            if (string.IsNullOrEmpty(newId))
+                return (null, raw, $"No ID in response: {raw[..Math.Min(raw.Length, 300)]}");
+            return (newId, raw, null);
+        }
+        catch (Exception ex) { return (null, "", ex.Message); }
+    }
+
     // ── Per-request API key injection ─────────────────────────────────────────
     private sealed class ApiKeyHandler : DelegatingHandler
     {
@@ -3283,6 +3376,7 @@ public class PayrixService
             return base.SendAsync(request, ct);
         }
     }
+
 }
 
 // ── Payment test result ───────────────────────────────────────────────────────
