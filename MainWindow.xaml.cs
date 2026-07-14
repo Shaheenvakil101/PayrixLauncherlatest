@@ -7853,6 +7853,14 @@ WHERE {filter}
 
             switch (txn.Type)
             {
+                case 1: // CC Sale
+                case 2: // CC Authorize
+                case 3: // CC Capture
+                case 4: // CC Refund
+                case 5: // CC Void
+                    BuildAndStore("CC Refund",  WebhookTestService.BuildCcRefundPayloadFromTransaction(txn));
+                    BuildAndStore("CC Return",  WebhookTestService.BuildCcReturnPayloadFromTransaction(txn));
+                    break;
                 case 7: // ACH
                     BuildAndStore("ACH eCheck Funded",  WebhookTestService.BuildAchFundedPayloadFromTransaction(txn));
                     BuildAndStore("ACH eCheck Return",  WebhookTestService.BuildECheckReturnPayloadFromTransaction(txn));
@@ -7862,14 +7870,10 @@ WHERE {filter}
                     BuildAndStore("ACH eCheck Return",  WebhookTestService.BuildECheckReturnPayloadFromTransaction(txn));
                     BuildAndStore("ACH Refund",         WebhookTestService.BuildAchRefundPayloadFromTransaction(txn));
                     break;
-                case 4: // CC
-                    BuildAndStore("CC Refund",  WebhookTestService.BuildCcRefundPayloadFromTransaction(txn));
-                    BuildAndStore("CC Return",  WebhookTestService.BuildCcReturnPayloadFromTransaction(txn));
-                    break;
                 case 6: // Disbursement
                     BuildAndStore("Disbursement", WebhookTestService.BuildDisbursementPayloadFromTransaction(txn));
                     break;
-                default: // unknown — build ACH Funded as best guess
+                default:
                     BuildAndStore("ACH eCheck Funded", WebhookTestService.BuildAchFundedPayloadFromTransaction(txn));
                     break;
             }
