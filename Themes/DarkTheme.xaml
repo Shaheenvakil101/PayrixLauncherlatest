@@ -168,11 +168,51 @@
     <SolidColorBrush x:Key="DarkScrollBg"        Color="#202020"/>
 
     <!-- ── Env toggle ────────────────────────────────────────────────────── -->
-    <SolidColorBrush x:Key="EnvBtnInactiveBg"     Color="#3D3D3D"/>
-    <SolidColorBrush x:Key="EnvBtnInactiveBorder" Color="#4D4D4D"/>
-    <SolidColorBrush x:Key="EnvBtnInactiveFg"     Color="#ADADAD"/>
+    <SolidColorBrush x:Key="EnvBtnInactiveBg"     Color="#2C2C2C"/>
+    <SolidColorBrush x:Key="EnvBtnInactiveBorder" Color="#606060"/>
+    <SolidColorBrush x:Key="EnvBtnInactiveFg"     Color="#D0D0D0"/>
+    <SolidColorBrush x:Key="EnvSandboxActiveBg"   Color="#4F46E5"/>
+    <SolidColorBrush x:Key="EnvSandboxActiveBd"   Color="#6366F1"/>
+    <SolidColorBrush x:Key="EnvProdActiveBg"      Color="#059669"/>
+    <SolidColorBrush x:Key="EnvProdActiveBd"      Color="#10B981"/>
 
     <SolidColorBrush x:Key="FgDefault"           Color="#FFFFFF"/>
+
+    <!-- ── Amber warning panels ─────────────────────────────────────────── -->
+    <SolidColorBrush x:Key="AmberWarningBg"         Color="#251A08"/>
+    <SolidColorBrush x:Key="AmberWarningBorder"     Color="#F59E0B"/>
+    <SolidColorBrush x:Key="AmberWarningFg"         Color="#FCD34D"/>
+    <SolidColorBrush x:Key="AmberWarningFgMuted"    Color="#FDE68A"/>
+
+    <!-- ── Green/Red highlight cards (dashboard) ─────────────────────────── -->
+    <SolidColorBrush x:Key="GreenHighlightBg"       Color="#0D2518"/>
+    <SolidColorBrush x:Key="GreenHighlightBorder"   Color="#22C55E"/>
+    <SolidColorBrush x:Key="GreenHighlightFg"       Color="#22C55E"/>
+    <SolidColorBrush x:Key="RedHighlightBg"         Color="#2A0D10"/>
+    <SolidColorBrush x:Key="RedHighlightBorder"     Color="#EF4444"/>
+    <SolidColorBrush x:Key="RedHighlightFg"         Color="#F87171"/>
+
+    <!-- ── iOS-style action buttons ──────────────────────────────────────── -->
+    <SolidColorBrush x:Key="IosButtonBg"            Color="#3D3D3D"/>
+    <SolidColorBrush x:Key="IosButtonFg"            Color="#429CE3"/>
+    <SolidColorBrush x:Key="IosButtonBorder"        Color="#4D4D4D"/>
+    <SolidColorBrush x:Key="IosButtonHoverBg"       Color="#4D4D4D"/>
+
+    <!-- ── Secondary button (outlined green) ──────────────────────────── -->
+    <SolidColorBrush x:Key="SecondaryBtnBg"          Color="#0D2518"/>
+    <SolidColorBrush x:Key="SecondaryBtnFg"          Color="#4ADE80"/>
+    <SolidColorBrush x:Key="SecondaryBtnBorder"      Color="#22C55E"/>
+    <SolidColorBrush x:Key="SecondaryBtnHoverBg"     Color="#1A4028"/>
+    <SolidColorBrush x:Key="SecondaryBtnHoverBorder" Color="#4ADE80"/>
+
+    <!-- ── Progress bar ───────────────────────────────────────────────── -->
+    <SolidColorBrush x:Key="ProgBarTrackBg"          Color="#383838"/>
+
+    <!-- ── Overlay info box ───────────────────────────────────────────── -->
+    <SolidColorBrush x:Key="OverlayInfoBg"           Color="#1A2535"/>
+    <SolidColorBrush x:Key="OverlayInfoFg"           Color="#93BCEE"/>
+    <SolidColorBrush x:Key="OverlayCountBg"          Color="#1A2535"/>
+    <SolidColorBrush x:Key="OverlayCountFg"          Color="#429CE3"/>
 
 
     <!-- ═══════════════════════════════════════════════════════════════════
@@ -607,12 +647,103 @@
         <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI Variable Text, Segoe UI"/>
     </Style>
 
-    <Style TargetType="DatePicker">
-        <Setter Property="Background"  Value="#1F1F1F"/>
-        <Setter Property="Foreground"  Value="#FFFFFF"/>
-        <Setter Property="BorderBrush" Value="#444444"/>
-        <Setter Property="FontFamily"  Value="Segoe UI Variable Display, Segoe UI Variable Text, Segoe UI"/>
+    <!-- DatePickerTextBox — transparent inner part -->
+    <Style TargetType="DatePickerTextBox">
+        <Setter Property="Background"             Value="Transparent"/>
+        <Setter Property="Foreground"             Value="#FFFFFF"/>
+        <Setter Property="CaretBrush"             Value="#429CE3"/>
+        <Setter Property="SelectionBrush"         Value="#429CE3"/>
+        <Setter Property="SelectionOpacity"       Value="0.4"/>
+        <Setter Property="BorderThickness"        Value="0"/>
+        <Setter Property="Padding"                Value="8,6"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FontFamily"             Value="Segoe UI Variable Display, Segoe UI Variable Text, Segoe UI"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DatePickerTextBox">
+                    <Grid>
+                        <TextBlock x:Name="PART_Watermark" Visibility="Collapsed"
+                                   Text="Select…" Foreground="#737373"
+                                   IsHitTestVisible="False" VerticalAlignment="Center" Margin="8,0"/>
+                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
+
+    <!-- DatePicker — Win11 dark, styled like TextBox/ComboBox -->
+    <Style TargetType="DatePicker">
+        <Setter Property="Background"         Value="#1F1F1F"/>
+        <Setter Property="Foreground"         Value="#FFFFFF"/>
+        <Setter Property="BorderBrush"        Value="#444444"/>
+        <Setter Property="IsTodayHighlighted" Value="True"/>
+        <Setter Property="FontFamily"         Value="Segoe UI Variable Display, Segoe UI Variable Text, Segoe UI"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DatePicker">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="1" CornerRadius="4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="30"/>
+                            </Grid.ColumnDefinitions>
+                            <DatePickerTextBox x:Name="PART_TextBox" Grid.Column="0"
+                                               Foreground="{TemplateBinding Foreground}"
+                                               HorizontalAlignment="Stretch"
+                                               VerticalAlignment="Stretch"/>
+                            <Button x:Name="PART_Button" Grid.Column="1" Focusable="False"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Background="Transparent" BorderThickness="0"
+                                    Width="26" Height="26">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="BBd" Background="Transparent" CornerRadius="4" Padding="3">
+                                            <TextBlock Text="&#xE787;"
+                                                       FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                       FontSize="12" Foreground="#737373"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="BBd" Property="Background" Value="#3D3D3D"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                            <Popup x:Name="PART_Popup" Placement="Bottom"
+                                   AllowsTransparency="True" StaysOpen="False"
+                                   Grid.ColumnSpan="2">
+                                <Border Background="#2C2C2C" BorderBrush="#444444"
+                                        BorderThickness="1" CornerRadius="8" Padding="4">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="28" ShadowDepth="4" Opacity="0.50" Color="#000000"/>
+                                    </Border.Effect>
+                                    <Calendar x:Name="PART_Calendar"/>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="#737373"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.38"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 
     <Style TargetType="DataGrid">
         <Setter Property="Background"               Value="#2C2C2C"/>

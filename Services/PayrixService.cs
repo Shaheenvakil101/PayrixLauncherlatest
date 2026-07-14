@@ -2205,15 +2205,13 @@ public class PayrixService
         // in the Payrix sandbox.
         try
         {
+            // IMPORTANT: annualCCSales/avgTicket/percentKeyed/percentEcomm are Payrix enums —
+            // non-zero values cause a validation error that silently blocks status=1 from being set.
+            // Only established + status=1 are needed to trigger auto-boarding.
             var body = new System.Collections.Generic.Dictionary<string, object>
             {
-                ["annualCCSales"] = 100000,
-                ["avgTicket"]     = 150,
-                ["established"]   = "20200101",
-                ["environment"]   = "ecommerce",
-                ["percentKeyed"]  = 100,
-                ["percentEcomm"]  = 100,
-                ["status"]        = 1,
+                ["established"] = "20200101",
+                ["status"]      = 1,
             };
             var payload = System.Text.Json.JsonSerializer.Serialize(body, JsonOptions);
             var content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json");

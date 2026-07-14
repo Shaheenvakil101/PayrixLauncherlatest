@@ -123,8 +123,25 @@ public class Transaction : INotifyPropertyChanged
     [JsonPropertyName("authorization")]
     public string? Authorization { get; set; }
 
+    private decimal? _approved;
     [JsonPropertyName("approved")]
-    public decimal? Approved { get; set; }
+    public decimal? Approved
+    {
+        get => _approved;
+        set
+        {
+            _approved = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ApprovedDollars));
+            OnPropertyChanged(nameof(ApprovedFormatted));
+            OnPropertyChanged(nameof(StatusLabel));
+            OnPropertyChanged(nameof(StatusColor));
+            OnPropertyChanged(nameof(HasDiscrepancy));
+            OnPropertyChanged(nameof(DiscrepancyLabel));
+            OnPropertyChanged(nameof(DiscrepancyDetails));
+            OnPropertyChanged(nameof(DiscrepancySummary));
+        }
+    }
 
     [JsonPropertyName("cvv")]
     public int? Cvv { get; set; }
@@ -183,8 +200,23 @@ public class Transaction : INotifyPropertyChanged
     [JsonPropertyName("status")]
     public int? Status { get; set; }
 
+    private int? _refunded;
     [JsonPropertyName("refunded")]
-    public int? Refunded { get; set; }
+    public int? Refunded
+    {
+        get => _refunded;
+        set
+        {
+            _refunded = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(StatusLabel));
+            OnPropertyChanged(nameof(StatusColor));
+            OnPropertyChanged(nameof(HasDiscrepancy));
+            OnPropertyChanged(nameof(DiscrepancyLabel));
+            OnPropertyChanged(nameof(DiscrepancyDetails));
+            OnPropertyChanged(nameof(DiscrepancySummary));
+        }
+    }
 
     [JsonPropertyName("reserved")]
     public int? Reserved { get; set; }
@@ -287,8 +319,23 @@ public class Transaction : INotifyPropertyChanged
     [JsonPropertyName("pinEntryCapability")]
     public string? PinEntryCapability { get; set; }
 
+    private string? _returned;
     [JsonPropertyName("returned")]
-    public string? Returned { get; set; }
+    public string? Returned
+    {
+        get => _returned;
+        set
+        {
+            _returned = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(StatusLabel));
+            OnPropertyChanged(nameof(StatusColor));
+            OnPropertyChanged(nameof(HasDiscrepancy));
+            OnPropertyChanged(nameof(DiscrepancyLabel));
+            OnPropertyChanged(nameof(DiscrepancyDetails));
+            OnPropertyChanged(nameof(DiscrepancySummary));
+        }
+    }
 
     [JsonPropertyName("txnsession")]
     public string? Txnsession { get; set; }
@@ -599,7 +646,8 @@ public class Transaction : INotifyPropertyChanged
             string Fmt(decimal v) => v.ToString("C2", fmt);
 
             // Line items total doesn't match the transaction header amount.
-            // Only meaningful when items have been fetched — and only for sale/capture types.
+            // Only meaningful when items have been fetched — and only for active sale/capture types.
+            // Skip if the transaction was subsequently returned or refunded (Payrix zeroes approved on the original).
             if (Items.Count > 0 && (Type == 1 || Type == 3 || Type == 7))
             {
                 var itemsSum  = Items.Sum(i => i.Total ?? 0);

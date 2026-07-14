@@ -25,6 +25,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private readonly ObservableCollection<WebhookTestCase> _testCases = [];
     private CancellationTokenSource? _testCts;
 
+    // ── Per-type TxnId / Amount memory ───────────────────────────────────────
+    private readonly Dictionary<int, string> _perTypeTxnId     = [];
+    private readonly Dictionary<int, string> _perTypeAmount     = [];
+
 
     // ── Sidebar navigation state ──────────────────────────────────────────────
     private System.Windows.Controls.Button? _activeNavBtn;
@@ -478,16 +482,34 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     // Last updated
     public string DashLastUpdated   => $"Last updated: {DateTime.Now:MMM d, yyyy h:mm tt}";
 
-    // Recent transactions (top 5, most recent first)
-    public IEnumerable<Models.Transaction> DashRecentTransactions
-        => _transactions.OrderByDescending(t => t.Created).Take(5);
+    // ── Period / top-N filters ────────────────────────────────────────────────
+    private int _dashPeriodDays = 30;   // 7 / 30 / 90 / 0 = All
+    private int _dashTopN       = 5;    // 3 / 5 / 10 / 20
 
-    // Top merchants by approved volume (top 5)
+    public string DashPeriodLabel => _dashPeriodDays == 0 ? "All time" : $"Last {_dashPeriodDays} days";
+    public string DashTopNLabel   => $"Top {_dashTopN} ▾";
+
+    private IEnumerable<Models.Transaction> DashPeriodTxns
+    {
+        get
+        {
+            if (_dashPeriodDays == 0) return _transactions;
+            var cutoff = DateTime.Now.Date.AddDays(-_dashPeriodDays);
+            return _transactions.Where(t =>
+                DateTime.TryParse(t.Created, out var d) && d.Date >= cutoff);
+        }
+    }
+
+    // Recent transactions (most recent first, period-filtered)
+    public IEnumerable<Models.Transaction> DashRecentTransactions
+        => DashPeriodTxns.OrderByDescending(t => t.Created).Take(5);
+
+    // Top merchants by approved volume (period + top-N filtered)
     public IEnumerable<(string Name, string Volume, int Count)> DashTopMerchants
-        => _transactions
+        => DashPeriodTxns
            .GroupBy(t => t.Merchant ?? "Unknown")
            .OrderByDescending(g => g.Sum(t => t.ApprovedDollars))
-           .Take(5)
+           .Take(_dashTopN)
            .Select(g => (
                Name: g.FirstOrDefault()?.MerchantDisplayName ?? g.Key,
                Volume: g.Sum(t => t.ApprovedDollars).ToString("C2", new System.Globalization.CultureInfo("en-US")),
@@ -517,6 +539,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void RefreshOverviewKpis()
     {
+        OnPropertyChanged(nameof(DashPeriodLabel));
+        OnPropertyChanged(nameof(DashTopNLabel));
         OnPropertyChanged(nameof(OverviewTxnCount));
         OnPropertyChanged(nameof(OverviewApproved));
         OnPropertyChanged(nameof(OverviewAchCount));
@@ -753,10 +777,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             WebhookEnvBox.SelectedIndex = s.WebhookEnvIndex;
         if (!string.IsNullOrEmpty(s.WebhookUrl)) WebhookUrlBox.Text = s.WebhookUrl;
         if (!string.IsNullOrEmpty(s.EntityCustomField)) EntityCustomBox.Text = s.EntityCustomField;
-        if (!string.IsNullOrEmpty(s.AchTxnId))  AchTxnIdBox.Text  = s.AchTxnId;
-        if (!string.IsNullOrEmpty(s.AchAmount)) AchAmountBox.Text = s.AchAmount;
+
+        // Restore per-type TxnId / Amount
+        if (!string.IsNullOrEmpty(s.AchTxnId))      _perTypeTxnId[0]  = s.AchTxnId;
+        if (!string.IsNullOrEmpty(s.AchAmount))      _perTypeAmount[0] = s.AchAmount;
+        if (!string.IsNullOrEmpty(s.RefundTxnId))    _perTypeTxnId[1]  = s.RefundTxnId;
+        if (!string.IsNullOrEmpty(s.RefundAmount))   _perTypeAmount[1] = s.RefundAmount;
+        if (!string.IsNullOrEmpty(s.CcRefundTxnId))  _perTypeTxnId[2]  = s.CcRefundTxnId;
+        if (!string.IsNullOrEmpty(s.CcRefundAmount)) _perTypeAmount[2] = s.CcRefundAmount;
+        if (!string.IsNullOrEmpty(s.CcReturnTxnId))  _perTypeTxnId[3]  = s.CcReturnTxnId;
+        if (!string.IsNullOrEmpty(s.CcReturnAmount)) _perTypeAmount[3] = s.CcReturnAmount;
+
         if (s.WebhookTypeIndex >= 0 && s.WebhookTypeIndex < WebhookTypeBox.Items.Count)
             WebhookTypeBox.SelectedIndex = s.WebhookTypeIndex;
+
+        // Set boxes from restored per-type values for the active type
+        var idx = WebhookTypeBox.SelectedIndex;
+        if (_perTypeTxnId.TryGetValue(idx, out var savedTxn))    AchTxnIdBox.Text  = savedTxn;
+        if (_perTypeAmount.TryGetValue(idx, out var savedAmt))   AchAmountBox.Text = savedAmt;
         // KPI visibility
         if (!s.KpiVisible)
         {
@@ -898,8 +936,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             StagingMainDbConnectionString  = StagingMainDbBox.Text.Trim(),
             SprintMainDbConnectionString   = SprintMainDbBox.Text.Trim(),
             EntityCustomField = EntityCustomBox.Text.Trim(),
-            AchTxnId         = AchTxnIdBox.Text.Trim(),
-            AchAmount        = AchAmountBox.Text.Trim(),
+            AchTxnId         = _perTypeTxnId.GetValueOrDefault(0, AchTxnIdBox.Text.Trim()),
+            AchAmount        = _perTypeAmount.GetValueOrDefault(0, AchAmountBox.Text.Trim()),
+            RefundTxnId      = _perTypeTxnId.GetValueOrDefault(1, ""),
+            RefundAmount     = _perTypeAmount.GetValueOrDefault(1, ""),
+            CcRefundTxnId    = _perTypeTxnId.GetValueOrDefault(2, ""),
+            CcRefundAmount   = _perTypeAmount.GetValueOrDefault(2, ""),
+            CcReturnTxnId    = _perTypeTxnId.GetValueOrDefault(3, ""),
+            CcReturnAmount   = _perTypeAmount.GetValueOrDefault(3, ""),
             WebhookTypeIndex = WebhookTypeBox.SelectedIndex,
             KpiVisible          = KpiGrid.Visibility == Visibility.Visible,
             EmailSectionCollapsed = EmailSectionContent.Visibility  == Visibility.Collapsed,
@@ -958,19 +1002,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (!System.IO.File.Exists(PaymentServiceManagerPath)) return;
 
         var lines = System.IO.File.ReadAllLines(PaymentServiceManagerPath);
-        if (lines.Length < 2359) return;
 
-        // Line numbers are 1-based; array is 0-based → index 2358
-        const int targetIndex = 2358;
-        var original = lines[targetIndex];
+        // Search for the launcher-fallback line dynamically — matches "custom = "GUID,GUID";" lines.
+        // Always takes the LAST match, which is the OnChargeReimbursement fallback slot.
+        var uuidPair = new System.Text.RegularExpressions.Regex(
+            @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12},[0-9a-fA-F]{8}");
+        int targetIndex = -1;
+        for (int i = 0; i < lines.Length; i++)
+        {
+            var trimmed = lines[i].TrimStart();
+            if ((trimmed.StartsWith("custom =", StringComparison.Ordinal) ||
+                 trimmed.StartsWith("//custom =", StringComparison.Ordinal)) &&
+                uuidPair.IsMatch(trimmed))
+                targetIndex = i;
+        }
+        if (targetIndex < 0) return;
 
-        // Only touch lines that look like the hardcoded custom assignment
-        if (!original.TrimStart().StartsWith("custom =", StringComparison.Ordinal) &&
-            !original.TrimStart().StartsWith("//custom =", StringComparison.Ordinal))
-            return;
-
-        // Preserve leading whitespace
-        var indent = original.Length - original.TrimStart().Length;
+        var original     = lines[targetIndex];
+        var indent       = original.Length - original.TrimStart().Length;
         var leadingSpaces = original[..indent];
 
         lines[targetIndex] = $"{leadingSpaces}custom = \"{custom}\";";
@@ -1367,6 +1416,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var filtered = _allFetchedTransactions
             .Where(t => (!from.HasValue || (DateTime.TryParse(t.Created, out var fd) && fd.Date >= from.Value.Date))
                      && (!to.HasValue   || (DateTime.TryParse(t.Created, out var td) && td.Date <= to.Value.Date)))
+            .OrderByDescending(t => t.Created)
             .ToList();
 
         _transactions.Clear();
@@ -1374,6 +1424,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _transactions.Add(t);
 
         UpdateSummary();
+    }
+
+    private void SortTransactionsByCreated()
+    {
+        var sorted = _transactions.OrderByDescending(t => t.Created).ToList();
+        _transactions.Clear();
+        foreach (var t in sorted)
+            _transactions.Add(t);
     }
 
     private void TxnColChooserBtn_Toggled(object sender, RoutedEventArgs e)
@@ -1524,6 +1582,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 finally { _sem.Release(); IncrementBusyProgress(); }
             }));
 
+            SortTransactionsByCreated();
             RefreshOverviewKpis();
 
             if (_rawJsons.Count > 0)
@@ -1963,6 +2022,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 });
                 IncrementBusyProgress();
             }));
+
+            SortTransactionsByCreated();
             RefreshOverviewKpis();
 
             TxnIdsBox.Text = string.Join(", ", txns.Select(t => t.Id).Where(id => id is not null));
@@ -2372,6 +2433,28 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void NavToTransactions_Click(object sender, RoutedEventArgs e)
         => NavTxn.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+
+    private void DashPeriodCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.ComboBox cb) return;
+        _dashPeriodDays = cb.SelectedIndex switch { 0 => 7, 1 => 30, 2 => 90, _ => 0 };
+        OnPropertyChanged(nameof(DashPeriodLabel));
+        RefreshDashboardFiltered();
+    }
+
+    private void DashTopNCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.ComboBox cb) return;
+        _dashTopN = cb.SelectedIndex switch { 0 => 3, 1 => 5, 2 => 10, _ => 20 };
+        OnPropertyChanged(nameof(DashTopNLabel));
+        OnPropertyChanged(nameof(DashTopMerchants));
+    }
+
+    private void RefreshDashboardFiltered()
+    {
+        OnPropertyChanged(nameof(DashTopMerchants));
+        OnPropertyChanged(nameof(DashRecentTransactions));
+    }
 
     private async void ExportJsonBtn_Click(object sender, RoutedEventArgs e)
     {
@@ -4248,6 +4331,8 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             WebhookUrlBox.IsReadOnly = true;
         else
             WebhookUrlBox.IsReadOnly = false;
+
+        if (_isInitialized) SaveSettings();
     }
 
     private async void RunAllTestsBtn_Click(object sender, RoutedEventArgs e)
@@ -4728,6 +4813,17 @@ ORDER BY MAX(s.ExpiresOn) DESC";
     private void WebhookTypeBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (WebhookTypeBadge is null || AchAmountBox is null) return;
+
+        // Save current box values to the previous type before switching
+        if (e.RemovedItems.Count > 0 && _isInitialized)
+        {
+            var prevIdx = WebhookTypeBox.Items.IndexOf(e.RemovedItems[0]);
+            if (prevIdx >= 0)
+            {
+                _perTypeTxnId[prevIdx]  = AchTxnIdBox.Text.Trim();
+                _perTypeAmount[prevIdx] = AchAmountBox.Text.Trim();
+            }
+        }
         var (label, bg, border) = WebhookTypeBox.SelectedIndex switch
         {
             1 => ("ACH RETURN",    WpfColor.FromRgb(234, 88,  12),  WpfColor.FromRgb(253, 186, 116)),
@@ -4776,6 +4872,15 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             5 or 7 or 10 or 11 => string.IsNullOrEmpty(AchAmountBox.Text) || AchAmountBox.Text is "898.00" or "74.00" or "250.00"  ? "6131.24" : AchAmountBox.Text,
             _ => string.IsNullOrEmpty(AchAmountBox.Text) || AchAmountBox.Text is "898.00" or "250.00" or "6131.24"? "74.00"   : AchAmountBox.Text   // 1,2,3,6
         };
+
+        // Restore saved TxnId/Amount for the newly selected type (overrides default amount above)
+        var newIdx = WebhookTypeBox.SelectedIndex;
+        if (_perTypeTxnId.TryGetValue(newIdx, out var savedTxn) && !string.IsNullOrEmpty(savedTxn))
+            AchTxnIdBox.Text = savedTxn;
+        if (_perTypeAmount.TryGetValue(newIdx, out var savedAmt) && !string.IsNullOrEmpty(savedAmt))
+            AchAmountBox.Text = savedAmt;
+
+        if (_isInitialized) SaveSettings();
     }
 
     // ── Open log file ────────────────────────────────────────────────────────
@@ -6445,12 +6550,32 @@ VALUES
             // so the UI shows "configured" without needing BQECoreApi changes.
             // ServiceType=6 (Payrix), Method=0 (CreditCard), Method=1 (ACHTransfer)
 
+            // Get or create PaymentServiceSetting row — PaymentService.PaymentServiceSetting_ID is required
+            Guid paymentServiceSettingId;
+            using (var pssCmd = new Microsoft.Data.SqlClient.SqlCommand(
+                "SELECT TOP 1 PaymentServiceSetting_ID FROM PaymentServiceSetting", conn))
+            {
+                var pssVal = await pssCmd.ExecuteScalarAsync();
+                if (pssVal != null && pssVal != DBNull.Value)
+                {
+                    paymentServiceSettingId = (Guid)pssVal;
+                    psDebug.AppendLine($"✅ PaymentServiceSetting found ({paymentServiceSettingId.ToString()[..8]}…)");
+                }
+                else
+                {
+                    paymentServiceSettingId = Guid.NewGuid();
+                    using var pssIns = new Microsoft.Data.SqlClient.SqlCommand(@"
+INSERT INTO PaymentServiceSetting
+    (PaymentServiceSetting_ID, PayNowButton, PayNowButtonPosition, EmailMessageOption, SendMailToInvoiceCreator)
+VALUES
+    (@id, 3, 0, 0, 1)", conn);
+                    pssIns.Parameters.AddWithValue("@id", paymentServiceSettingId);
+                    await pssIns.ExecuteNonQueryAsync();
+                    psDebug.AppendLine($"✅ PaymentServiceSetting created ({paymentServiceSettingId.ToString()[..8]}…)");
+                }
+            }
+
             // method 0=CC → tpsIds[0],  method 1=ACH → tpsIds[1]
-            // Column names confirmed from PaymentService table screenshot:
-            // PaymentService_ID, ServiceType, ThirdPartySetting_ID, Name,
-            // BankAccount_ID, ExpenseAccount_ID, ProcessingFeePercent,
-            // ReimbursementAccount_ID, PayNowButton, PayNowButtonPosition,
-            // CreatedOn, CreatedBy_ID, LastUpdatedBy_ID, RecordTimeStamp(auto), IsActive, APPID
             foreach (var method in new[] { 0, 1 })
             {
                 var tpsIdForMethod = tpsIds[method];
@@ -6472,7 +6597,8 @@ INSERT INTO PaymentService
      ReimbursementAccount_ID, PayNowButton, PayNowButtonPosition,
      CreatedOn, CreatedBy_ID, LastUpdatedBy_ID,
      IsActive, APPID,
-     AllowPartialPayment, AllowDelayedPayment, Method, UseProjectAccount)
+     AllowPartialPayment, AllowDelayedPayment, Method, UseProjectAccount,
+     PaymentServiceSetting_ID)
 VALUES
     (NEWID(), 6, @tid, @name,
      @bank, @exp, @fee,
@@ -6480,7 +6606,8 @@ VALUES
      NULL, 0, 0,
      GETUTCDATE(), @cby, @cby,
      1, 'BQECORE-WEB-V1',
-     0, 0, @method, 0)", conn);
+     0, 0, @method, 0,
+     @pssId)", conn);
 
                     psIns.Parameters.AddWithValue("@tid",        tpsIdForMethod);
                     psIns.Parameters.AddWithValue("@name",       method == 0 ? "BQE ePayments - Credit Card" : "BQE ePayments - ACH Transfer");
@@ -6492,6 +6619,7 @@ VALUES
                     psIns.Parameters.AddWithValue("@chargeback", chargebackAccountId.HasValue ? (object)chargebackAccountId.Value : DBNull.Value);
                     psIns.Parameters.AddWithValue("@cby",        createdById.HasValue ? (object)createdById.Value : DBNull.Value);
                     psIns.Parameters.AddWithValue("@method",     method);
+                    psIns.Parameters.AddWithValue("@pssId",      paymentServiceSettingId);
                     await psIns.ExecuteNonQueryAsync();
                     psDebug.AppendLine($"✅ PaymentService Method={method} inserted (bank={bankAccountId?.ToString()?[..8] ?? "null"}…)");
                 }
@@ -6507,6 +6635,26 @@ VALUES
                 }
             }
             Dispatcher.BeginInvoke(() => WebhookPayloadBox.Text += "\n" + psDebug);
+
+            // ── 3. Set Company.CompanySetting Payrix flag = true ────────────
+            try
+            {
+                using var flagCmd = new Microsoft.Data.SqlClient.SqlCommand(@"
+UPDATE Company
+SET CompanySetting = JSON_MODIFY(
+    ISNULL(CompanySetting, '{""Flags"":{""Payrix"":true}}'),
+    '$.Flags.Payrix',
+    CAST(1 AS BIT)
+)", conn);
+                await flagCmd.ExecuteNonQueryAsync();
+                psDebug.AppendLine("✅ Company.CompanySetting Payrix flag set to true");
+            }
+            catch (Exception flagEx)
+            {
+                psDebug.AppendLine($"⚠  Company flag update failed: {flagEx.Message}");
+            }
+            Dispatcher.BeginInvoke(() => WebhookPayloadBox.Text += "\n" + psDebug);
+
 
             // ── 3. Verify records + confirm IsActive=1 ───────────────────────────
             var diagSb = new System.Text.StringBuilder();
@@ -6769,7 +6917,7 @@ WHERE {filter}
                     return;
                 }
 
-                // Step 2 — create refund in Payrix
+                // Step 2 — create refund in Payrix (attempt regardless of batch/settlement status)
                 AchPostStatus.Text = $"⏳ Creating {refundWebhookType} in Payrix…";
                 long amountCents = 0;
                 var amountStr = AchAmountBox.Text.Trim();
@@ -6778,8 +6926,41 @@ WHERE {filter}
                 var (newTxnId, createRaw, createErr) = await svc.CreatePayrixRefundAsync(refundWebhookType, originalTxnId, merchantId, amountCents);
                 if (createErr != null || string.IsNullOrEmpty(newTxnId))
                 {
-                    AchPostStatus.Text       = $"❌ Payrix refund creation failed: {createErr}";
-                    AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(220, 38, 38));
+                    // Payrix rejected — auto-fallback: send webhook directly to Core with original txn as fortxn
+                    AchPostStatus.Text       = $"⚠  Payrix creation failed ({createErr}) — sending webhook directly to Core…";
+                    AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(217, 119, 6));
+                    origTxn.Fortxn = originalTxnId;
+                    var skipPayload = refundWebhookType switch
+                    {
+                        "ACH Refund" => WebhookTestService.BuildAchRefundPayloadFromTransaction(origTxn),
+                        "CC Refund"  => WebhookTestService.BuildCcRefundPayloadFromTransaction(origTxn),
+                        _            => WebhookTestService.BuildCcReturnPayloadFromTransaction(origTxn),
+                    };
+                    using var skipHandler = new System.Net.Http.HttpClientHandler { ServerCertificateCustomValidationCallback = System.Net.Http.HttpClientHandler.DangerousAcceptAnyServerCertificateValidator };
+                    using var skipClient  = new System.Net.Http.HttpClient(skipHandler) { Timeout = TimeSpan.FromSeconds(60) };
+                    using var skipContent = new System.Net.Http.StringContent(skipPayload, System.Text.Encoding.UTF8, "application/json");
+                    var skipResp = await skipClient.PostAsync(url, skipContent);
+                    var skipBody = await skipResp.Content.ReadAsStringAsync();
+                    if (skipResp.IsSuccessStatusCode)
+                    {
+                        AchPostStatus.Text       = $"✅  Core processed (no Payrix entry created): {skipBody.Trim()[..Math.Min(skipBody.Trim().Length, 200)]}";
+                        AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                        var origInGrid2 = _transactions.FirstOrDefault(t => t.Id == originalTxnId);
+                        if (origInGrid2 != null)
+                        {
+                            if (refundWebhookType == "CC Return" || refundWebhookType == "ACH Return")
+                                origInGrid2.Returned = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                            else
+                                origInGrid2.Refunded = 1;
+                            origInGrid2.Approved = 0;
+                        }
+                    }
+                    else
+                    {
+                        AchPostStatus.Text       = $"❌ Core webhook HTTP {(int)skipResp.StatusCode}: {skipBody.Trim()[..Math.Min(skipBody.Trim().Length, 200)]}";
+                        AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(220, 38, 38));
+                    }
+                    AchPostBtn.IsEnabled = true;
                     return;
                 }
 
@@ -6793,9 +6974,22 @@ WHERE {filter}
                     return;
                 }
 
-                // Step 4 — pin fortxn if Payrix returned null
-                if (string.IsNullOrWhiteSpace(refundTxn.Fortxn))
-                    refundTxn.Fortxn = originalTxnId;
+                // Step 4 — patch missing fields from original txn; Payrix often returns
+                // fortxn/payment/order as null on new refund txns. Core needs payment to
+                // match OnlinePaymentID and order for invoice lookup.
+                if (string.IsNullOrWhiteSpace(refundTxn.Fortxn))   refundTxn.Fortxn   = originalTxnId;
+                if (string.IsNullOrWhiteSpace(refundTxn.Payment))   refundTxn.Payment   = origTxn.Payment;
+                if (string.IsNullOrWhiteSpace(refundTxn.Order))     refundTxn.Order     = origTxn.Order;
+                if (string.IsNullOrWhiteSpace(refundTxn.Merchant))  refundTxn.Merchant  = origTxn.Merchant;
+                // BQECoreHost exits early when PayrixResponseData.Amount (mapped from JSON "approved") == 0.
+                // Payrix doesn't always set approved/total on a new refund txn; use the original amounts
+                // so the webhook always carries a non-zero approved value.
+                if ((refundTxn.Approved == null || refundTxn.Approved == 0) &&
+                    (refundTxn.Total    == null || refundTxn.Total    == 0))
+                {
+                    refundTxn.Approved = origTxn.Approved ?? origTxn.Total;
+                    refundTxn.Total    = refundTxn.Approved;
+                }
 
                 // Update txn ID box to show new refund txn ID
                 AchTxnIdBox.Text = newTxnId;
@@ -6827,10 +7021,22 @@ WHERE {filter}
                     sw2.Stop();
                     logBody2 = await resp2.Content.ReadAsStringAsync();
                     logCode2 = (int)resp2.StatusCode;
+                    var snippet = logBody2.Trim().Length > 2 ? $"  Core: {logBody2.Trim()[..Math.Min(logBody2.Trim().Length, 200)]}" : "";
                     if (resp2.IsSuccessStatusCode)
                     {
-                        AchPostStatus.Text       = $"✅  Created {newTxnId}  →  HTTP {logCode2}  —  {sw2.ElapsedMilliseconds} ms";
+                        AchPostStatus.Text       = $"✅  Created {newTxnId}  →  HTTP {logCode2}  —  {sw2.ElapsedMilliseconds} ms{snippet}";
                         AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+
+                        // Update original transaction in the grid so status reflects the reversal immediately
+                        var origInGrid = _transactions.FirstOrDefault(t => t.Id == originalTxnId);
+                        if (origInGrid != null)
+                        {
+                            if (refundWebhookType == "CC Return" || refundWebhookType == "ACH Return")
+                                origInGrid.Returned = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                            else
+                                origInGrid.Refunded = 1;
+                            origInGrid.Approved = 0;
+                        }
                     }
                     else
                     {
@@ -9532,6 +9738,18 @@ WHERE {filter}
         SaveSettings();
     }
 
+    private void AchTxnIdBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        _perTypeTxnId[WebhookTypeBox.SelectedIndex] = AchTxnIdBox.Text.Trim();
+        SaveSettings();
+    }
+
+    private void AchAmountBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        _perTypeAmount[WebhookTypeBox.SelectedIndex] = AchAmountBox.Text.Trim();
+        SaveSettings();
+    }
+
     private void UseDbIdsForCustomBtn_Click(object sender, RoutedEventArgs e)
     {
         // Pull AccountID + CompanyID from the Core DB strip (strip the "(via ...)" suffix)
@@ -9686,6 +9904,14 @@ WHERE {filter}
         bool open = VerifyMerchantContent.Visibility == Visibility.Visible;
         VerifyMerchantContent.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
         VerifyMerchantArrow.Text = open ? "▶" : "▼";
+
+        if (!open && string.IsNullOrWhiteSpace(VmEmailBox.Text))
+        {
+            var s = Services.SettingsService.Load();
+            VmEmailBox.Text = !string.IsNullOrWhiteSpace(s.CoreAccountEmail)
+                ? s.CoreAccountEmail
+                : s.BqeLoginEmail;
+        }
     }
 
     // ── Verify Merchant ───────────────────────────────────────────────────────
@@ -10173,6 +10399,20 @@ WHERE {filter}
             catch (Exception ex) { Log($"  Member fix error (non-fatal): {ex.Message}"); }
             Log("");
 
+            // ── Step 5.5: Configure merchant — add bank account + PUT extended fields ──
+            // POST /accounts (ACH checking) is required for Payrix auto-boarding to trigger.
+            // ConfigureMerchantAsync also does PUT status=1 with volume fields.
+            Log("STEP 5.5: Adding bank account (required for Payrix auto-boarding)…");
+            try
+            {
+                var (cfgLog, cfgErr) = await svc.ConfigureMerchantAsync(initialMerchantId, resolvedEntityId);
+                foreach (var cfgLine in cfgLog.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                    Log($"  {cfgLine.TrimEnd()}");
+                if (cfgErr != null) Log($"  ⚠ Configure warning: {cfgErr}");
+            }
+            catch (Exception ex) { Log($"  Configure error (non-fatal): {ex.Message}"); }
+            Log("");
+
             // ── Step 6: board merchant — poll ALL entity merchants until status=2 ────
             // IMPORTANT: Payrix auto-boarding creates a NEW merchant with a DIFFERENT ID
             // than the initial entity-suffix merchant.  Do NOT poll by initialMerchantId —
@@ -10332,6 +10572,12 @@ WHERE {filter}
             Log(bqsErr == null ? "  BQSTable upsert ✅" : $"  BQSTable upsert ⚠️: {bqsErr}");
             Log("");
 
+            // ── Step 10: PaymentServiceSetting + PaymentService rows + Company flag ─
+            Log("STEP 10: Ensuring PaymentServiceSetting, PaymentService rows, Company Payrix flag…");
+            var psFixErr = await EnsurePaymentServiceRowsAsync(hostConn, companyId, tpsId);
+            Log(psFixErr == null ? "  ✅ Done" : $"  ⚠️: {psFixErr}");
+            Log("");
+
             // ── Verify DB was written correctly ───────────────────────────────
             Log("VERIFY: Reading back ThirdPartySettings from DB to confirm…");
             try
@@ -10357,6 +10603,24 @@ WHERE {filter}
                 });
             }
             catch (Exception ex) { Log($"  DB verify error: {ex.Message}"); }
+            Log("");
+
+            // ── Step 11: Delete BQSTable signup row (merchant is now Active) ──────
+            Log("STEP 11: Deleting BQSTable signup row (merchant Active)…");
+            try
+            {
+                var cs2  = Services.HostDbService.SanitizeConnectionStringPublic(hostConn);
+                cs2 = DbHelper.EnsureTrustedCert(cs2);
+                var dbId2 = await Services.HostDbService.GetCompanyDatabaseIdAsync(cs2, companyId);
+                var cc2   = Services.HostDbService.ReplaceInitialCatalogPublic(cs2, dbId2);
+                await using var conn11 = new Microsoft.Data.SqlClient.SqlConnection(cc2);
+                await conn11.OpenAsync();
+                await using var del = new Microsoft.Data.SqlClient.SqlCommand(
+                    "DELETE FROM BQSTable WHERE ParamName LIKE 'PaymentService_SignUpProcess_Payrix%'", conn11);
+                var rows = await del.ExecuteNonQueryAsync();
+                Log(rows > 0 ? $"  ✅ Deleted {rows} BQSTable row(s)." : "  ℹ No BQSTable signup row found (already clean).");
+            }
+            catch (Exception ex) { Log($"  ⚠ BQSTable delete error: {ex.Message}"); }
             Log("");
 
             // ── Done ──────────────────────────────────────────────────────────
@@ -10600,6 +10864,130 @@ WHERE {filter}
             upsertCmd.Parameters.AddWithValue("@k", paramName);
             upsertCmd.Parameters.AddWithValue("@v", paramValue);
             await upsertCmd.ExecuteNonQueryAsync();
+
+            return null;  // success
+        }
+        catch (Exception ex) { return ex.Message; }
+    }
+
+    /// <summary>
+    /// Ensures PaymentServiceSetting row exists, inserts CC + ACH PaymentService rows if missing,
+    /// and sets Company.CompanySetting Payrix flag = true.
+    /// </summary>
+    private static async Task<string?> EnsurePaymentServiceRowsAsync(
+        string hostConnStr, string companyId, string tpsId)
+    {
+        hostConnStr = Services.HostDbService.SanitizeConnectionStringPublic(hostConnStr);
+        hostConnStr = DbHelper.EnsureTrustedCert(hostConnStr);
+
+        if (!Guid.TryParse(companyId, out var cGuid))
+            return $"Invalid company ID: {companyId}";
+
+        try
+        {
+            // Resolve company Core DB
+            string? companyDbName = null;
+            await using (var hostConn = new Microsoft.Data.SqlClient.SqlConnection(hostConnStr))
+            {
+                await hostConn.OpenAsync();
+                await using var cmd = new Microsoft.Data.SqlClient.SqlCommand(
+                    "SELECT TOP 1 DatabaseID FROM Company WHERE ID = @cid", hostConn);
+                cmd.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter("@cid",
+                    System.Data.SqlDbType.UniqueIdentifier) { Value = cGuid });
+                companyDbName = (await cmd.ExecuteScalarAsync())?.ToString()?.Trim();
+            }
+            if (string.IsNullOrWhiteSpace(companyDbName))
+                return $"Company not found in Host DB (ID={companyId}).";
+
+            var coreConnStr = Services.HostDbService.ReplaceInitialCatalogPublic(hostConnStr, companyDbName);
+            await using var conn = new Microsoft.Data.SqlClient.SqlConnection(coreConnStr);
+            await conn.OpenAsync();
+
+            // ── 1. Get or create PaymentServiceSetting row ─────────────────
+            Guid pssId;
+            await using (var pssCmd = new Microsoft.Data.SqlClient.SqlCommand(
+                "SELECT TOP 1 PaymentServiceSetting_ID FROM PaymentServiceSetting", conn))
+            {
+                var pssVal = await pssCmd.ExecuteScalarAsync();
+                if (pssVal != null && pssVal != DBNull.Value)
+                {
+                    pssId = (Guid)pssVal;
+                }
+                else
+                {
+                    pssId = Guid.NewGuid();
+                    await using var pssIns = new Microsoft.Data.SqlClient.SqlCommand(@"
+INSERT INTO PaymentServiceSetting
+    (PaymentServiceSetting_ID, PayNowButton, PayNowButtonPosition, EmailMessageOption, SendMailToInvoiceCreator)
+VALUES (@id, 3, 0, 0, 1)", conn);
+                    pssIns.Parameters.AddWithValue("@id", pssId);
+                    await pssIns.ExecuteNonQueryAsync();
+                }
+            }
+
+            // ── 2. Find first bank account (AccountType=2) and expense account (AccountType=6) ─
+            Guid? bankId = null, expId = null;
+            foreach (var (acctType, fieldRef) in new[] { (2, "bank"), (6, "exp") })
+            {
+                await using var acctCmd = new Microsoft.Data.SqlClient.SqlCommand(@"
+SELECT TOP 1 al.AccountList_ID FROM AccountList al
+WHERE al.AccountType = @t AND al.IsActive = 1
+ORDER BY al.AccountList_ID", conn);
+                acctCmd.Parameters.AddWithValue("@t", acctType);
+                var v = await acctCmd.ExecuteScalarAsync();
+                if (v != null && v != DBNull.Value)
+                {
+                    if (fieldRef == "bank") bankId = (Guid)v;
+                    else                    expId  = (Guid)v;
+                }
+            }
+
+            // ── 3. Ensure PaymentService CC + ACH rows ─────────────────────
+            if (bankId.HasValue && expId.HasValue && !string.IsNullOrEmpty(tpsId) && Guid.TryParse(tpsId, out var tpsGuid))
+            {
+                // Check which methods already exist for this ThirdPartySetting
+                var existingMethods = new System.Collections.Generic.HashSet<int>();
+                await using (var chkCmd = new Microsoft.Data.SqlClient.SqlCommand(
+                    "SELECT Method FROM PaymentService WHERE ThirdPartySetting_ID = @tps", conn))
+                {
+                    chkCmd.Parameters.AddWithValue("@tps", tpsGuid);
+                    await using var rdr = await chkCmd.ExecuteReaderAsync();
+                    while (await rdr.ReadAsync()) existingMethods.Add(rdr.GetInt16(0));
+                }
+
+                foreach (var (method, name) in new[] { (0, "BQE ePayments - Credit Card"), (1, "BQE ePayments - ACH Transfer") })
+                {
+                    if (existingMethods.Contains(method)) continue;
+                    await using var psIns = new Microsoft.Data.SqlClient.SqlCommand(@"
+INSERT INTO PaymentService
+    (PaymentService_ID, ServiceType, ThirdPartySetting_ID, Name,
+     BankAccount_ID, ExpenseAccount_ID,
+     CreatedOn, IsActive, AllowPartialPayment, AllowDelayedPayment,
+     Method, UseProjectAccount, PaymentServiceSetting_ID, APPID)
+VALUES
+    (NEWID(), 6, @tps, @name,
+     @bank, @exp,
+     GETUTCDATE(), 1, 0, 0,
+     @method, 0, @pssId, 'BQECORE-WEB-V1')", conn);
+                    psIns.Parameters.AddWithValue("@tps",   tpsGuid);
+                    psIns.Parameters.AddWithValue("@name",  name);
+                    psIns.Parameters.AddWithValue("@bank",  bankId.Value);
+                    psIns.Parameters.AddWithValue("@exp",   expId.Value);
+                    psIns.Parameters.AddWithValue("@method", method);
+                    psIns.Parameters.AddWithValue("@pssId", pssId);
+                    await psIns.ExecuteNonQueryAsync();
+                }
+            }
+
+            // ── 4. Set Company.CompanySetting Payrix flag = true ──────────
+            await using var flagCmd = new Microsoft.Data.SqlClient.SqlCommand(@"
+UPDATE Company
+SET CompanySetting = JSON_MODIFY(
+    ISNULL(CompanySetting, '{""Flags"":{""Payrix"":true}}'),
+    '$.Flags.Payrix',
+    CAST(1 AS BIT)
+)", conn);
+            await flagCmd.ExecuteNonQueryAsync();
 
             return null;  // success
         }
@@ -11500,6 +11888,7 @@ WHERE {filter}
                         });
                         IncrementBusyProgress();
                     }));
+                    SortTransactionsByCreated();
                     RefreshOverviewKpis();
 
                     UpdateSummary();
@@ -11567,6 +11956,7 @@ WHERE {filter}
                     IncrementBusyProgress(); // one tick per fully-processed disbursement
                 }));
 
+                SortTransactionsByCreated();
                 UpdateSummary();
                 ShowItemsPlaceholder(true);
                 SetStatus($"[{envLabel}] Loaded {records.Count} disbursement(s)  |  {totalTxns} transaction(s).");
