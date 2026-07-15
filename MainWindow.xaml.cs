@@ -7934,43 +7934,41 @@ WHERE {filter}
         if (sender is not System.Windows.Controls.Button btn) return;
         if (btn.Tag is not Transaction txn) return;
 
-        var payload = WebhookTestService.BuildAchFundedPayloadFromTransaction(txn);
+        // Map transaction type to the correct webhook type index
+        // 0=ACH Funded, 1=ACH Return, 2=CC Refund, 3=CC Return, 4=Disbursement, 6=ACH Refund
+        int typeIdx = txn.Type switch
+        {
+            8              => 1, // eCheck Return → ACH Return
+            4 when txn.IsAch => 6, // ACH Refund
+            4              => 2, // CC Refund
+            7              => 0, // eCheck Sale → ACH Funded
+            _              => 0  // CC Sale/Auth/Capture → ACH Funded
+        };
+
+        var payload = typeIdx switch
+        {
+            1 => WebhookTestService.BuildECheckReturnPayloadFromTransaction(txn),
+            2 => WebhookTestService.BuildCcRefundPayloadFromTransaction(txn),
+            3 => WebhookTestService.BuildCcReturnPayloadFromTransaction(txn),
+            6 => WebhookTestService.BuildAchRefundPayloadFromTransaction(txn),
+            _ => WebhookTestService.BuildAchFundedPayloadFromTransaction(txn),
+        };
 
         SetPayload(PrettyPrint(payload));
 
-        // Set dropdown to ACH Funded and pre-fill fields
-        WebhookTypeBox.SelectedIndex = 0;
+        // Pre-fill webhook fields
+        WebhookTypeBox.SelectedIndex = typeIdx;
         AchTxnIdBox.Text  = txn.Id ?? "";
         AchAmountBox.Text = ((txn.Total ?? txn.Approved ?? 0) / 100m)
                                 .ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
-        PopulateTxnCard(txn, 0);
+        PopulateTxnCard(txn, typeIdx);
 
-        // Update the ACH test case so ▶ Run uses real data
-        var achCase = _testCases.FirstOrDefault(tc =>
-            tc.Name.Contains("ACH", StringComparison.OrdinalIgnoreCase) ||
-            tc.Name.Contains("eCheck", StringComparison.OrdinalIgnoreCase));
-        if (achCase is not null)
-            achCase.Payload = payload;
+        // Navigate directly to Webhook Tests tab (TabItem3)
+        MainTabControl.SelectedItem = TabItem3;
 
-        // Navigate to Webhook Tests tab
-        var tabCtrl = FindTabControl();
-        if (tabCtrl != null)
-        {
-            foreach (var item in tabCtrl.Items)
-            {
-                if (item is System.Windows.Controls.TabItem ti &&
-                    ti.Header?.ToString()?.Contains("Webhook", StringComparison.OrdinalIgnoreCase) == true)
-                {
-                    tabCtrl.SelectedItem = ti;
-                    break;
-                }
-            }
-        }
-
-        var typeNote = txn.IsAch ? "" : $" (forced from {txn.TypeLabel})";
-        AchPostStatus.Text       = $"✅  Built from txn {txn.Id}{typeNote} — ready to POST";
+        AchPostStatus.Text       = $"✅  Built {txn.TypeLabel} webhook from {txn.Id} — ready to POST";
         AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
-        SetStatus($"Funded webhook payload built from {txn.Id} ({txn.TotalFormatted}){typeNote}.");
+        SetStatus($"Webhook payload built from {txn.Id} ({txn.TotalFormatted}).");
     }
 
     // ── Transaction detail card ──────────────────────────────────────────────
