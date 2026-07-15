@@ -164,6 +164,14 @@ public class Merchant : INotifyPropertyChanged
         set { _linkedToCore = value; OnPC(); }
     }
 
+    private int? _memberCount;
+    public int? MemberCount
+    {
+        get => _memberCount;
+        set { _memberCount = value; OnPC(); OnPC(nameof(MemberCountDisplay)); }
+    }
+    public string MemberCountDisplay => _memberCount.HasValue ? _memberCount.Value.ToString() : "…";
+
     private bool _isMarked;
     public bool IsMarked
     {

@@ -9007,7 +9007,7 @@
                                             Background="{DynamicResource TabHoverBg}">
                                             <Grid x:Name="AccHeaderGrid">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" MaxWidth="220"/>
+                                                    <ColumnDefinition Width="*" MaxWidth="300"/>
                                                     <ColumnDefinition Width="4"/>
                                                     <ColumnDefinition Width="65"/>
                                                     <ColumnDefinition Width="4"/>
@@ -9024,6 +9024,7 @@
                                                     <ColumnDefinition Width="70"/>
                                                     <ColumnDefinition Width="4"/>
                                                     <ColumnDefinition Width="170"/>
+                                                    <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                                                     <CheckBox x:Name="AccSelectAllChk" Margin="10,0,6,0"
@@ -9143,7 +9144,7 @@
                                                         </Border.Style>
                                                         <Grid>
                                                             <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" MaxWidth="220"/>
+                                                                <ColumnDefinition Width="*" MaxWidth="300"/>
                                                                 <ColumnDefinition Width="4"/>    <!-- spacer -->
                                                                 <ColumnDefinition Width="65"/>
                                                                 <ColumnDefinition Width="4"/>    <!-- spacer -->
@@ -9160,6 +9161,7 @@
                                                                 <ColumnDefinition Width="70"/>
                                                                 <ColumnDefinition Width="4"/>    <!-- spacer -->
                                                                 <ColumnDefinition Width="170"/>
+                                                                <ColumnDefinition Width="*"/>    <!-- filler -->
                                                             </Grid.ColumnDefinitions>
                                                             <!-- Checkbox + Name + ID + pin chip -->
                                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -9191,7 +9193,8 @@
                                                                 <StackPanel Orientation="Horizontal">
                                                                     <TextBlock Text="{Binding MerchantId}"
                                                                                FontSize="10" Foreground="{DynamicResource SubText}"
-                                                                               FontFamily="Cascadia Code, Consolas"/>
+                                                                               FontFamily="Cascadia Code, Consolas"
+                                                                               TextTrimming="CharacterEllipsis"/>
                                                                     <Button Content="📋" FontSize="11"
                                                                             Background="Transparent" BorderThickness="0"
                                                                             Padding="4,0" Margin="4,0,0,0"
@@ -9426,11 +9429,6 @@
                                             Padding="10,4" Cursor="Hand" MouseLeftButtonDown="MerchantFilter_Click" Tag="All">
                                         <TextBlock Text="All" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
                                     </Border>
-                                    <Border x:Name="MerchantFilterSubmittedBorder" CornerRadius="6" Margin="0,0,4,0"
-                                            Background="{DynamicResource InputBg}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
-                                            Padding="10,4" Cursor="Hand" MouseLeftButtonDown="MerchantFilter_Click" Tag="Submitted">
-                                        <TextBlock Text="Submitted" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource SubText}"/>
-                                    </Border>
                                     <Border x:Name="MerchantFilterActiveBorder" CornerRadius="6" Margin="0,0,4,0"
                                             Background="{DynamicResource InputBg}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
                                             Padding="10,4" Cursor="Hand" MouseLeftButtonDown="MerchantFilter_Click" Tag="Active">
@@ -9440,11 +9438,6 @@
                                             Background="{DynamicResource InputBg}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
                                             Padding="10,4" Cursor="Hand" MouseLeftButtonDown="MerchantFilter_Click" Tag="Inactive">
                                         <TextBlock Text="Inactive" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource SubText}"/>
-                                    </Border>
-                                    <Border x:Name="MerchantFilterSuspendedBorder" CornerRadius="6" Margin="0,0,4,0"
-                                            Background="{DynamicResource InputBg}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
-                                            Padding="10,4" Cursor="Hand" MouseLeftButtonDown="MerchantFilter_Click" Tag="Suspended">
-                                        <TextBlock Text="Suspended" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource SubText}"/>
                                     </Border>
                                     <Border x:Name="MerchantFilterBoardedBorder" CornerRadius="6"
                                             Background="{DynamicResource InputBg}" BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"

@@ -438,7 +438,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return settled * 100.0 / total;
         }
     }
-    public int    DashActiveMerchants  => _merchants.Count(m => m.Status == 1);
+    public int    DashActiveMerchants  => _merchants.Count(m => m.Status == 2);
     public int    DashTotalCount       => _transactions.Count;
     public int    DashApprovedCount    => _transactions.Count(t => t.Status == 1);
     public int    DashCapturedCount    => _transactions.Count(t => t.Status == 3);
@@ -4981,6 +4981,14 @@ ORDER BY MAX(s.ExpiresOn) DESC";
         2 => SprintMainDbBox.Text.Trim(),
         _ => SprintMainDbBox.Text.Trim()
     };
+
+    /// <summary>All non-empty Core DB connection strings across every configured environment.</summary>
+    private List<string> AllMainDbConnectionStrings() =>
+        new[] {
+            LocalMainDbBox.Text.Trim(),
+            StagingMainDbBox.Text.Trim(),
+            SprintMainDbBox.Text.Trim()
+        }.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().ToList();
 
     /// <summary>Parses Account_ID and Company_ID embedded in a BQE CORE transaction description.</summary>
     private static (string? AccountId, string? CompanyId) ParseIdsFromDescription(string? description)
@@ -14689,33 +14697,47 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
             var merchantCoreConnStr = ActiveMainDbConnectionString();
             var merchantSnapshot    = merchants.ToList(); // capture before async
 
-            // CORE check — runs immediately, independent of the slow entity-name API loop
-            if (!string.IsNullOrWhiteSpace(merchantCoreConnStr))
+            // CORE check — check ALL configured Core DBs and union results
+            var allCoreConns = AllMainDbConnectionStrings();
+            if (allCoreConns.Count > 0)
             {
+                var candidateIds = merchantSnapshot.Select(m => m.Id).ToList();
                 _ = Task.Run(async () =>
                 {
-                    var (linked, coreErr) = await Services.HostDbService
-                        .GetLinkedMerchantIdsAsync(merchantCoreConnStr, merchantSnapshot.Select(m => m.Id))
-                        .ConfigureAwait(false);
+                    var allLinked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    string? lastErr = null;
+                    foreach (var conn in allCoreConns)
+                    {
+                        var (linked, coreErr) = await Services.HostDbService
+                            .GetLinkedMerchantIdsAsync(conn, candidateIds)
+                            .ConfigureAwait(false);
+                        if (coreErr != null) lastErr = coreErr;
+                        foreach (var id in linked) allLinked.Add(id);
+                    }
                     await Dispatcher.InvokeAsync(() =>
                     {
-                        if (coreErr != null)
-                            SetStatus($"⚠ Core link check: {coreErr}");
+                        if (lastErr != null && allLinked.Count == 0)
+                            SetStatus($"⚠ Core link check: {lastErr}");
                         foreach (var m in merchantSnapshot)
-                            m.LinkedToCore = linked.Contains(m.Id);
+                            m.LinkedToCore = allLinked.Contains(m.Id);
+                        ApplyMerchantFilter(MerchantSearchBox.Text.Trim());
                     });
                 });
             }
 
-            // Entity-name enrichment — runs separately so it can't block the CORE check
+            // Entity-name enrichment — all merchants fetched in parallel
             _ = Task.Run(async () =>
             {
-                foreach (var m in merchantSnapshot.Where(m => !string.IsNullOrEmpty(m.Entity) && m.EntityName is null))
+                var toEnrich = merchantSnapshot
+                    .Where(m => !string.IsNullOrEmpty(m.Entity) && m.EntityName is null)
+                    .ToList();
+                var tasks = toEnrich.Select(async m =>
                 {
                     var name = await service.GetEntityNameAsync(m.Entity!).ConfigureAwait(false);
                     if (name is not null)
                         await Dispatcher.InvokeAsync(() => m.EntityName = name);
-                }
+                });
+                await Task.WhenAll(tasks).ConfigureAwait(false);
             });
 
             _mSortColumn = null;
@@ -14745,17 +14767,18 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
 
     private void ApplyMerchantFilter(string? query)
     {
-        // Status filter
+        // Base: all merchants, exclude Created (0) status only — Core link is a visual badge, not a filter
+        var nonCreated = _allMerchants.Where(m => m.Status != 0);
+
+        // Status sub-filter
         var byStatus = _merchantStatusFilter switch
         {
-            "Submitted" => _allMerchants.Where(m => m.Status == 1).ToList(),
-            "Active"    => _allMerchants.Where(m => m.Status == 2).ToList(),
-            "Inactive"  => _allMerchants.Where(m => m.Status == 3).ToList(),
-            "Suspended" => _allMerchants.Where(m => m.Status == 4).ToList(),
-            "Boarded"   => _allMerchants.Where(m => m.Status == 2)          // Active/Boarded = status 2
-                                        .OrderByDescending(m => m.Boarded ?? m.Created)
-                                        .Take(20).ToList(),
-            _           => _allMerchants.ToList()
+            "Active"   => nonCreated.Where(m => m.Status == 2).ToList(),
+            "Inactive" => nonCreated.Where(m => m.Status == 3).ToList(),
+            "Boarded"  => nonCreated.Where(m => m.Status == 2)
+                                    .OrderByDescending(m => m.Boarded ?? m.Created)
+                                    .Take(20).ToList(),
+            _          => nonCreated.ToList()
         };
 
         // Text search
@@ -15000,12 +15023,10 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
         var inactiveBorder = (System.Windows.Media.Brush)(TryFindResource("CardBorder") ?? System.Windows.Media.Brushes.Gray);
         var inactiveFg     = (System.Windows.Media.Brush)(TryFindResource("SubText")    ?? System.Windows.Media.Brushes.Gray);
 
-        Reset(MerchantFilterAllBorder,       inactiveBg, inactiveBorder, inactiveFg);
-        Reset(MerchantFilterSubmittedBorder, inactiveBg, inactiveBorder, inactiveFg);
-        Reset(MerchantFilterActiveBorder,    inactiveBg, inactiveBorder, inactiveFg);
-        Reset(MerchantFilterInactiveBorder,  inactiveBg, inactiveBorder, inactiveFg);
-        Reset(MerchantFilterSuspendedBorder, inactiveBg, inactiveBorder, inactiveFg);
-        Reset(MerchantFilterBoardedBorder,   inactiveBg, inactiveBorder, inactiveFg);
+        Reset(MerchantFilterAllBorder,      inactiveBg, inactiveBorder, inactiveFg);
+        Reset(MerchantFilterActiveBorder,   inactiveBg, inactiveBorder, inactiveFg);
+        Reset(MerchantFilterInactiveBorder, inactiveBg, inactiveBorder, inactiveFg);
+        Reset(MerchantFilterBoardedBorder,  inactiveBg, inactiveBorder, inactiveFg);
 
         // Highlight the selected pill
         var (activeBg, activeBorder, activeFg) = tag switch
@@ -15015,9 +15036,6 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
                             (System.Windows.Media.Brush)System.Windows.Media.Brushes.White),
             "Inactive"  => (new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(156, 163, 175)),
                             (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(107, 114, 128)),
-                            (System.Windows.Media.Brush)System.Windows.Media.Brushes.White),
-            "Suspended" => (new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 158, 11)),
-                            (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(217, 119, 6)),
                             (System.Windows.Media.Brush)System.Windows.Media.Brushes.White),
             "Boarded"   => (new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(16, 185, 129)),
                             (System.Windows.Media.Brush)new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(5, 150, 105)),
@@ -15029,12 +15047,10 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
 
         var activePill = tag switch
         {
-            "Submitted" => MerchantFilterSubmittedBorder,
-            "Active"    => MerchantFilterActiveBorder,
-            "Inactive"  => MerchantFilterInactiveBorder,
-            "Suspended" => MerchantFilterSuspendedBorder,
-            "Boarded"   => MerchantFilterBoardedBorder,
-            _           => MerchantFilterAllBorder
+            "Active"   => MerchantFilterActiveBorder,
+            "Inactive" => MerchantFilterInactiveBorder,
+            "Boarded"  => MerchantFilterBoardedBorder,
+            _          => MerchantFilterAllBorder
         };
         activePill.Background  = activeBg;
         activePill.BorderBrush = activeBorder;
@@ -17862,29 +17878,34 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
 
             ApplyAccSort();
 
-            // Enrich Core DB link status in background
-            var accountCoreConnStr = ActiveMainDbConnectionString();
+            // Enrich Core DB link status — check ALL configured Core DBs and union results
+            var accountAllConns = AllMainDbConnectionStrings();
             _ = Task.Run(async () =>
             {
-                var connStr  = accountCoreConnStr;
-                if (!string.IsNullOrWhiteSpace(connStr))
+                if (accountAllConns.Count == 0)
                 {
-                    var rows = _allAccountRows.ToList();
+                    await Dispatcher.InvokeAsync(() => SetStatus("⚠ No Core DB connection strings configured — Core column will not populate."));
+                    return;
+                }
+                var rows = _allAccountRows.ToList();
+                var candidateIds = rows.Select(r => r.MerchantId).ToList();
+                var allLinked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                string? lastErr = null;
+                foreach (var conn in accountAllConns)
+                {
                     var (linked, coreErr) = await Services.HostDbService
-                        .GetLinkedMerchantIdsAsync(connStr, rows.Select(r => r.MerchantId))
+                        .GetLinkedMerchantIdsAsync(conn, candidateIds)
                         .ConfigureAwait(false);
-                    await Dispatcher.InvokeAsync(() =>
-                    {
-                        if (coreErr != null)
-                            SetStatus($"⚠ Core link check: {coreErr}");
-                        foreach (var r in rows)
-                            r.LinkedToCore = linked.Contains(r.MerchantId);
-                    });
+                    if (coreErr != null) lastErr = coreErr;
+                    foreach (var id in linked) allLinked.Add(id);
                 }
-                else
+                await Dispatcher.InvokeAsync(() =>
                 {
-                    await Dispatcher.InvokeAsync(() => SetStatus("⚠ Core DB connection string is empty — Core column will not populate."));
-                }
+                    if (lastErr != null && allLinked.Count == 0)
+                        SetStatus($"⚠ Core link check: {lastErr}");
+                    foreach (var r in rows)
+                        r.LinkedToCore = allLinked.Contains(r.MerchantId);
+                });
             });
 
             SetStatus($"Loaded entity + {merchants.Count} merchant accounts.");
