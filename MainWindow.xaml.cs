@@ -15595,7 +15595,7 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
         int ok = 0, fail = 0, hasTxn = 0;
         foreach (var row in targets)
         {
-            var (success, _, err) = await svc.DeleteMerchantAsync(row.MerchantId).ConfigureAwait(false);
+            var (success, _, err) = await svc.DeleteMerchantAsync(row.MerchantId, row.StatusCode).ConfigureAwait(false);
             if (success)
             {
                 ok++;
@@ -15676,7 +15676,7 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
         int ok = 0, fail = 0, hasTxn = 0;
         foreach (var m in targets)
         {
-            var (success, _, err) = await svc.DeleteMerchantAsync(m.Id).ConfigureAwait(false);
+            var (success, _, err) = await svc.DeleteMerchantAsync(m.Id, m.Status).ConfigureAwait(false);
             if (success)
             {
                 ok++;
@@ -15909,8 +15909,8 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
             var env    = IsSandbox ? PayrixEnvironment.Sandbox : PayrixEnvironment.Production;
             var svc    = new PayrixService(apiKey, env);
 
-            // 1. Delete from Payrix
-            var (ok, rawJson, err) = await svc.DeleteMerchantAsync(m.Id);
+            // 1. Delete from Payrix (pass status so Created merchants are deactivated first)
+            var (ok, rawJson, err) = await svc.DeleteMerchantAsync(m.Id, m.Status);
             SetRawJson(PrettyPrint(rawJson));
 
             if (!ok)
@@ -15997,11 +15997,35 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
             var env    = IsSandbox ? PayrixEnvironment.Sandbox : PayrixEnvironment.Production;
             var svc    = new PayrixService(apiKey, env);
 
-            // 1. Delete from Payrix
-            var (ok, rawJson, err) = await svc.DeleteMerchantAsync(merchantId);
+            // 1. Delete from Payrix (pass status so Created merchants are deactivated first)
+            var (ok, rawJson, err) = await svc.DeleteMerchantAsync(merchantId, row?.StatusCode ?? -1);
             if (!ok)
             {
                 SetStatus($"⚠  Delete failed: {err}");
+                bool hasTransactions = err != null && (err.Contains("code 17") || err.Contains("Could not delete"));
+                if (hasTransactions)
+                {
+                    SetBusy(false);
+                    bool deactivate = IosAlertDialog.Show(
+                        title:       "Cannot Delete — Has Transactions",
+                        message:     $"Payrix cannot delete \"{label}\" because it has existing transactions.\n\nWould you like to deactivate it instead?",
+                        actionLabel: "Deactivate",
+                        destructive: true,
+                        owner:       this);
+                    if (deactivate && row != null)
+                    {
+                        SetBusy(true);
+                        var (_, _, deactivateErr) = await svc.UpdateMerchantStatusAsync(merchantId, 3);
+                        if (deactivateErr == null)
+                        {
+                            row.StatusCode = 3;
+                            ApplyAccSort();
+                            SetStatus($"✅  \"{label}\" deactivated (has transactions, cannot be deleted).");
+                        }
+                        else SetStatus($"⚠  Deactivate failed: {deactivateErr}");
+                    }
+                    return;
+                }
                 WpfMessageBox.Show($"Payrix error: {err}", "Delete Failed",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;

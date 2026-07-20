@@ -1092,18 +1092,6 @@
                 <!-- Right: owner + env toggle + URL + connection pill + theme + KPI -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
 
-                    <!-- Owner chip -->
-                    <Border CornerRadius="6" Padding="10,5" Margin="0,0,8,0"
-                            Background="{DynamicResource DarkBtnBg}"
-                            BorderBrush="{DynamicResource DarkBorder}" BorderThickness="1">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Owner: " FontSize="11.5"
-                                       Foreground="{DynamicResource SubText}" VerticalAlignment="Center"/>
-                            <TextBlock Text="Shaheen" FontSize="11.5" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource PrimaryText}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
-
                     <!-- Env toggle group (pill) -->
                     <Border CornerRadius="7" Margin="0,0,8,0"
                             Background="{DynamicResource DarkBtnBg}"
@@ -1198,7 +1186,7 @@
                     <Border CornerRadius="6" Padding="10,5" Margin="0,0,8,0"
                             Background="{DynamicResource DarkBtnBg}"
                             BorderBrush="{DynamicResource DarkBorder}" BorderThickness="1"
-                            MaxWidth="230">
+                            MaxWidth="150">
                         <TextBlock x:Name="ActiveUrlText" FontSize="10.5"
                                    FontFamily="Consolas, Courier New"
                                    Foreground="{DynamicResource SubText}"
@@ -1660,11 +1648,11 @@
 
                                 </UniformGrid>
 
-                                <!-- Row 2: 6 stat cards -->
-                                <UniformGrid Columns="6" Margin="0,0,0,20">
+                                <!-- Row 2: 6 stat cards (2 rows × 3) -->
+                                <UniformGrid Columns="3" Margin="0,0,0,20">
 
                                     <!-- 1: Settled Count -->
-                                    <Border Margin="0,0,6,0" Background="{DynamicResource CardBg}"
+                                    <Border Margin="0,0,6,6" Background="{DynamicResource CardBg}"
                                             CornerRadius="10" Padding="14,14"
                                             BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                                         <StackPanel>
@@ -1692,7 +1680,7 @@
                                     </Border>
 
                                     <!-- 2: Settled Amount -->
-                                    <Border Margin="3,0" Background="{DynamicResource CardBg}"
+                                    <Border Margin="0,0,6,6" Background="{DynamicResource CardBg}"
                                             CornerRadius="10" Padding="14,14"
                                             BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                                         <StackPanel>
@@ -1710,7 +1698,7 @@
                                     </Border>
 
                                     <!-- 3: Pending -->
-                                    <Border Margin="3,0" Background="{DynamicResource CardBg}"
+                                    <Border Margin="0,0,0,6" Background="{DynamicResource CardBg}"
                                             CornerRadius="10" Padding="14,14"
                                             BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                                         <StackPanel>
@@ -1738,7 +1726,7 @@
                                     </Border>
 
                                     <!-- 4: Captured -->
-                                    <Border Margin="3,0" Background="{DynamicResource CardBg}"
+                                    <Border Margin="0,0,6,0" Background="{DynamicResource CardBg}"
                                             CornerRadius="10" Padding="14,14"
                                             BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                                         <StackPanel>
@@ -1766,7 +1754,7 @@
                                     </Border>
 
                                     <!-- 5: Avg Amount -->
-                                    <Border Margin="3,0" Background="{DynamicResource CardBg}"
+                                    <Border Margin="0,0,6,0" Background="{DynamicResource CardBg}"
                                             CornerRadius="10" Padding="14,14"
                                             BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                                         <StackPanel>
@@ -1785,7 +1773,7 @@
                                     </Border>
 
                                     <!-- 6: Disbursed -->
-                                    <Border Margin="6,0,0,0" Background="{DynamicResource CardBg}"
+                                    <Border Margin="0" Background="{DynamicResource CardBg}"
                                             CornerRadius="10" Padding="14,14"
                                             BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
                                         <StackPanel>
@@ -6785,12 +6773,6 @@
                                         Height="34" Padding="14,0" FontSize="12.5"
                                         Style="{StaticResource PrimaryButton}"
                                         Click="LoadAccounts_Click"/>
-                                <Button Grid.Column="4" x:Name="AccDeleteSelectedBtn"
-                                        Content="🗑  Delete Selected (0)"
-                                        Height="34" Padding="14,0" FontSize="12.5" Margin="8,0,0,0"
-                                        Style="{StaticResource DangerButton}"
-                                        Visibility="Collapsed"
-                                        Click="AccDeleteSelected_Click"/>
                             </Grid>
                         </Border>
 
@@ -6819,11 +6801,9 @@
                                 <Border x:Name="AccountEntityCard"
                                         Background="{DynamicResource CardBg}" CornerRadius="10"
                                         BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
-                                        Padding="16,10" Margin="0,0,0,12" Visibility="Collapsed">
+                                        Padding="16,12" Margin="0,0,0,12" Visibility="Collapsed">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
@@ -6836,11 +6816,9 @@
                                         <TextBlock Grid.Column="0" Text="ENTITY / API KEY OWNER"
                                                    FontSize="9.5" FontWeight="Bold"
                                                    Foreground="{DynamicResource SubText}"
-                                                   VerticalAlignment="Center"/>
-                                        <!-- Divider -->
-                                        <Border Grid.Column="1" Width="1" Margin="14,3" Background="{DynamicResource CardBorder}"/>
+                                                   VerticalAlignment="Center" Margin="0,0,24,0"/>
                                         <!-- Entity ID -->
-                                        <StackPanel Grid.Column="2" Margin="0,0,20,0" VerticalAlignment="Center">
+                                        <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
                                             <TextBlock Text="ENTITY ID" FontSize="9" FontWeight="Bold"
                                                        Foreground="{DynamicResource SubText}" Margin="0,0,0,1"/>
                                             <StackPanel Orientation="Horizontal">
@@ -6855,7 +6833,7 @@
                                             </StackPanel>
                                         </StackPanel>
                                         <!-- Name -->
-                                        <StackPanel Grid.Column="3" Margin="0,0,20,0" VerticalAlignment="Center">
+                                        <StackPanel Grid.Column="2" Margin="0,0,24,0" VerticalAlignment="Center">
                                             <TextBlock Text="NAME" FontSize="9" FontWeight="Bold"
                                                        Foreground="{DynamicResource SubText}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="AccEntityName"
@@ -6863,17 +6841,15 @@
                                                        Foreground="{DynamicResource PrimaryText}"/>
                                         </StackPanel>
                                         <!-- Login -->
-                                        <StackPanel Grid.Column="4" Margin="0,0,20,0" VerticalAlignment="Center">
+                                        <StackPanel Grid.Column="3" Margin="0,0,24,0" VerticalAlignment="Center">
                                             <TextBlock Text="LOGIN" FontSize="9" FontWeight="Bold"
                                                        Foreground="{DynamicResource SubText}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="AccEntityLogin"
                                                        FontSize="11" FontFamily="Cascadia Code, Consolas"
                                                        Foreground="{DynamicResource PrimaryText}"/>
                                         </StackPanel>
-                                        <!-- Divider -->
-                                        <Border Grid.Column="5" Width="1" Margin="0,3,14,3" Background="{DynamicResource CardBorder}"/>
                                         <!-- BQE Ref -->
-                                        <StackPanel Grid.Column="6" Margin="0,0,16,0" VerticalAlignment="Center" MaxWidth="300">
+                                        <StackPanel Grid.Column="4" Margin="0,0,16,0" VerticalAlignment="Center" MaxWidth="280">
                                             <TextBlock Text="BQE REF" FontSize="9" FontWeight="Bold"
                                                        Foreground="{DynamicResource SubText}" Margin="0,0,0,1"/>
                                             <TextBlock x:Name="AccEntityCustom"
@@ -6881,10 +6857,9 @@
                                                        Foreground="{DynamicResource SubText}"
                                                        TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
-                                        <!-- Spacer -->
-                                        <Border Grid.Column="7"/>
-                                        <!-- Verify button -->
-                                        <Border x:Name="VerifiedBadge" Grid.Column="8" CornerRadius="6" Padding="10,4"
+                                        <!-- Spacer pushes Verify badge to right -->
+                                        <!-- Verify badge -->
+                                        <Border x:Name="VerifiedBadge" Grid.Column="6" CornerRadius="6" Padding="10,4"
                                                 Background="{DynamicResource VerifiedBadgeBg}"
                                                 BorderBrush="{DynamicResource VerifiedBadgeBorder}" BorderThickness="1"
                                                 VerticalAlignment="Center">
@@ -6897,73 +6872,77 @@
                                 </Border>
 
                                 <!-- ── KPI tiles ── -->
-                                <Border x:Name="AccKpiPanel" Visibility="Collapsed" Margin="0,0,0,0">
+                                <Border x:Name="AccKpiPanel" Visibility="Collapsed" Margin="0,0,0,12">
                                     <UniformGrid Rows="1" Columns="4">
-                                        <!-- Total -->
+                                        <!-- Total — blue -->
                                         <Border Background="{DynamicResource CardBg}"
                                                 BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
-                                                CornerRadius="8" Margin="0,0,6,0">
+                                                CornerRadius="8" Margin="0,0,6,0" ClipToBounds="True">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="3"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Background="#2563EB" CornerRadius="7,0,0,7"/>
+                                                <Rectangle Grid.Column="0" Fill="#2563EB"/>
                                                 <StackPanel Grid.Column="1" Margin="12,10">
-                                                    <TextBlock Text="🏢  Total" FontSize="11" Foreground="{DynamicResource SubText}"/>
-                                                    <TextBlock x:Name="AccKpiTotal" Text="—" FontSize="22" FontWeight="Bold"
-                                                               Foreground="{DynamicResource PrimaryText}"/>
+                                                    <TextBlock Text="🏢  TOTAL" FontSize="10" FontWeight="Bold"
+                                                               Foreground="{DynamicResource SubText}" Margin="0,0,0,4"/>
+                                                    <TextBlock x:Name="AccKpiTotal" Text="—" FontSize="20" FontWeight="Bold"
+                                                               Foreground="#2563EB"/>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
-                                        <!-- Active -->
+                                        <!-- Active — green -->
                                         <Border Background="{DynamicResource CardBg}"
                                                 BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
-                                                CornerRadius="8" Margin="0,0,6,0">
+                                                CornerRadius="8" Margin="0,0,6,0" ClipToBounds="True">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="3"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Background="#16A34A" CornerRadius="7,0,0,7"/>
+                                                <Rectangle Grid.Column="0" Fill="#16A34A"/>
                                                 <StackPanel Grid.Column="1" Margin="12,10">
-                                                    <TextBlock Text="✅  Active" FontSize="11" Foreground="{DynamicResource SubText}"/>
-                                                    <TextBlock x:Name="AccKpiActive" Text="—" FontSize="22" FontWeight="Bold"
-                                                               Foreground="{DynamicResource PrimaryText}"/>
+                                                    <TextBlock Text="✅  ACTIVE" FontSize="10" FontWeight="Bold"
+                                                               Foreground="{DynamicResource SubText}" Margin="0,0,0,4"/>
+                                                    <TextBlock x:Name="AccKpiActive" Text="—" FontSize="20" FontWeight="Bold"
+                                                               Foreground="#16A34A"/>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
-                                        <!-- Inactive -->
+                                        <!-- Inactive — gray -->
                                         <Border Background="{DynamicResource CardBg}"
                                                 BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
-                                                CornerRadius="8" Margin="0,0,6,0">
+                                                CornerRadius="8" Margin="0,0,6,0" ClipToBounds="True">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="3"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Background="#9CA3AF" CornerRadius="7,0,0,7"/>
+                                                <Rectangle Grid.Column="0" Fill="#9CA3AF"/>
                                                 <StackPanel Grid.Column="1" Margin="12,10">
-                                                    <TextBlock Text="⏸  Inactive" FontSize="11" Foreground="{DynamicResource SubText}"/>
-                                                    <TextBlock x:Name="AccKpiInactive" Text="—" FontSize="22" FontWeight="Bold"
-                                                               Foreground="{DynamicResource PrimaryText}"/>
+                                                    <TextBlock Text="⏸  INACTIVE" FontSize="10" FontWeight="Bold"
+                                                               Foreground="{DynamicResource SubText}" Margin="0,0,0,4"/>
+                                                    <TextBlock x:Name="AccKpiInactive" Text="—" FontSize="20" FontWeight="Bold"
+                                                               Foreground="#9CA3AF"/>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
-                                        <!-- KYC Approved -->
+                                        <!-- KYC Approved — green -->
                                         <Border Background="{DynamicResource CardBg}"
                                                 BorderBrush="{DynamicResource CardBorder}" BorderThickness="1"
-                                                CornerRadius="8">
+                                                CornerRadius="8" ClipToBounds="True">
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="3"/>
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
-                                                <Border Grid.Column="0" Background="#16A34A" CornerRadius="7,0,0,7"/>
+                                                <Rectangle Grid.Column="0" Fill="#16A34A"/>
                                                 <StackPanel Grid.Column="1" Margin="12,10">
-                                                    <TextBlock Text="🪪  KYC Approved" FontSize="11" Foreground="{DynamicResource SubText}"/>
-                                                    <TextBlock x:Name="AccKpiKyc" Text="—" FontSize="22" FontWeight="Bold"
-                                                               Foreground="{DynamicResource PrimaryText}"/>
+                                                    <TextBlock Text="🔍  KYC APPROVED" FontSize="10" FontWeight="Bold"
+                                                               Foreground="{DynamicResource SubText}" Margin="0,0,0,4"/>
+                                                    <TextBlock x:Name="AccKpiKyc" Text="—" FontSize="20" FontWeight="Bold"
+                                                               Foreground="#16A34A"/>
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
@@ -7036,6 +7015,13 @@
                                                            FontSize="11" FontWeight="SemiBold"
                                                            Foreground="{DynamicResource SubText}"/>
                                             </Border>
+                                            <!-- Delete Selected (hidden until rows are checked) -->
+                                            <Button x:Name="AccDeleteSelectedBtn" Grid.Column="3"
+                                                    Content="🗑  Delete Selected (0)"
+                                                    Height="28" Padding="10,0" FontSize="11" Margin="0,0,6,0"
+                                                    Style="{StaticResource DangerButton}"
+                                                    Visibility="Collapsed" VerticalAlignment="Center"
+                                                    Click="AccDeleteSelected_Click"/>
                                             <!-- Export buttons -->
                                             <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
                                                 <Button x:Name="AccExportJsonBtn"
@@ -7079,8 +7065,7 @@
                                                     <ColumnDefinition Width="4"/>
                                                     <ColumnDefinition Width="130"/>
                                                     <ColumnDefinition Width="4"/>
-                                                    <ColumnDefinition Width="170"/>
-                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*" MinWidth="140"/>
                                                 </Grid.ColumnDefinitions>
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                                                     <CheckBox x:Name="AccSelectAllChk" Margin="10,0,6,0"
@@ -7157,7 +7142,7 @@
                                                               Background="Transparent" Cursor="SizeWE"
                                                               ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
                                                               DragDelta="AccSplitter_DragDelta"/>
-<StackPanel Grid.Column="18" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+<StackPanel Grid.Column="18" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,8,0">
                                                     <TextBlock Text="ACTION" FontSize="10" FontWeight="SemiBold"
                                                                Foreground="{DynamicResource SubText}" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                                     <Button x:Name="AccColChooserBtn" Content="⊞" Click="AccColumnChooser_Click"
@@ -7188,8 +7173,8 @@
                                             </Grid>
                                         </Border>
                                     <!-- Rows -->
-                                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                                        <ItemsControl x:Name="AccountMerchantList">
+                                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsControl x:Name="AccountMerchantList" HorizontalContentAlignment="Stretch">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type local:AccountMerchantRow}">
                                                     <Border Padding="4,9"
@@ -7227,8 +7212,7 @@
                                                                 <ColumnDefinition Width="4"/>    <!-- spacer -->
                                                                 <ColumnDefinition Width="130"/>
                                                                 <ColumnDefinition Width="4"/>    <!-- spacer -->
-                                                                <ColumnDefinition Width="170"/>
-                                                                <ColumnDefinition Width="*"/>    <!-- filler -->
+                                                                <ColumnDefinition Width="*" MinWidth="140"/>
                                                             </Grid.ColumnDefinitions>
                                                             <!-- Checkbox + Name + ID + pin chip -->
                                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -7344,7 +7328,8 @@
                                                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                                             <!-- Toggle Active / Inactive + Delete -->
                                                             <StackPanel Grid.Column="18" Orientation="Horizontal"
-                                                                        VerticalAlignment="Center" Margin="2,0,2,0">
+                                                                        VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                                        Margin="2,0,8,0">
                                                             <Button Content="{Binding ToggleStatusLabel}"
                                                                     IsEnabled="{Binding ToggleEnabled}"
                                                                     Tag="{Binding MerchantId}"
@@ -7859,8 +7844,10 @@
                                                                     <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
                                                                         <Setter Property="Background" Value="#7C3AED"/>
                                                                         <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="1">
+                                                                                <Setter Property="Background" Value="#D97706"/>
+                                                                            </DataTrigger>
                                                                             <DataTrigger Binding="{Binding Status}" Value="2">
-                                                                                <!-- Active → amber for Deactivate -->
                                                                                 <Setter Property="Background" Value="#D97706"/>
                                                                             </DataTrigger>
                                                                             <DataTrigger Binding="{Binding ToggleBusy}" Value="True">

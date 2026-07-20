@@ -2707,14 +2707,25 @@ public class PayrixService
     /// <summary>
     /// DELETE /merchants/{id} — removes the merchant from Payrix.
     /// Only works for merchants that have not processed any transactions.
+    /// Pass currentStatus so Created (0) merchants are deactivated first (Payrix requires inactive state).
     /// Returns (ok, rawJson, error).
     /// </summary>
     public async Task<(bool ok, string rawJson, string? error)>
-        DeleteMerchantAsync(string merchantId)
+        DeleteMerchantAsync(string merchantId, int currentStatus = -1)
     {
         var json = "{}";
         try
         {
+            // Payrix requires Created merchants to be set Inactive before DELETE
+            if (currentStatus == 0)
+            {
+                var dc = new System.Net.Http.StringContent(
+                    System.Text.Json.JsonSerializer.Serialize(new { status = 3 }, JsonOptions),
+                    System.Text.Encoding.UTF8, "application/json");
+                await _client.PutAsync($"/merchants/{Uri.EscapeDataString(merchantId)}", dc)
+                             .ConfigureAwait(false);
+            }
+
             var url  = $"/merchants/{Uri.EscapeDataString(merchantId)}";
             var resp = await _client.DeleteAsync(url).ConfigureAwait(false);
             json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
