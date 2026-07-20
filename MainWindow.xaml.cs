@@ -108,6 +108,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         // (_suppressKpiRefresh batches bulk adds so we only recompute once at the end)
         _transactions.CollectionChanged += (_, _) => { if (!_suppressKpiRefresh) RefreshOverviewKpis(); };
         ApplyColumnChooserState(startupSettings);
+        ApplyAdminSettingsVisibility(startupSettings);
         _isInitialized = true;   // all controls ready — event handlers may now call SaveSettings()
     }
 
@@ -286,6 +287,68 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         // Settings is always visible regardless of mode
         NavSettings.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Hides BQE Core Account card in Settings tab when running on a non-admin machine.
+    /// Controlled by AdminMachineIp in settings (empty = no restriction).
+    /// </summary>
+    private void ApplyAdminSettingsVisibility(Models.AppSettings s)
+    {
+        bool isAdmin = IsAdminMachine(s.AdminMachineIp);
+        BqeAccountCard.Visibility    = isAdmin ? Visibility.Visible : Visibility.Collapsed;
+        if (!isAdmin) BqeSignedInBanner.Visibility = Visibility.Collapsed;
+
+        // Populate Admin Machine card UI
+        var currentIp = GetLocalIpAddress();
+        AdminCurrentIpRun.Text = currentIp;
+        bool registered = !string.IsNullOrEmpty(s.AdminMachineIp);
+        AdminRegisteredIpText.Visibility  = registered ? Visibility.Visible : Visibility.Collapsed;
+        AdminRegisteredBadge.Visibility   = registered ? Visibility.Visible : Visibility.Collapsed;
+        AdminUnregisterBtn.Visibility     = registered ? Visibility.Visible : Visibility.Collapsed;
+        AdminRegisterBtn.Visibility       = registered ? Visibility.Collapsed : Visibility.Visible;
+        if (registered) AdminRegisteredIpRun.Text = s.AdminMachineIp;
+    }
+
+    private void AdminRegisterBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var ip = GetLocalIpAddress();
+        var s  = SettingsService.Load();
+        s.AdminMachineIp = ip;
+        SettingsService.Save(s);
+        ApplyAdminSettingsVisibility(s);
+    }
+
+    private void AdminUnregisterBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var s = SettingsService.Load();
+        s.AdminMachineIp = "";
+        SettingsService.Save(s);
+        ApplyAdminSettingsVisibility(s);
+    }
+
+    private static string GetLocalIpAddress()
+    {
+        try
+        {
+            return System.Net.NetworkInformation.NetworkInterface
+                .GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up
+                         && n.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Loopback)
+                .SelectMany(n => n.GetIPProperties().UnicastAddresses)
+                .Where(a => a.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
+                         && !System.Net.IPAddress.IsLoopback(a.Address))
+                .Select(a => a.Address.ToString())
+                .FirstOrDefault() ?? Environment.MachineName;
+        }
+        catch { return Environment.MachineName; }
+    }
+
+    private static bool IsAdminMachine(string adminMachineIp)
+    {
+        if (string.IsNullOrEmpty(adminMachineIp)) return true;
+        if (adminMachineIp.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase)) return true;
+        return GetLocalIpAddress() == adminMachineIp;
     }
 
     private void RestrictedModeChk_Changed(object sender, RoutedEventArgs e)
@@ -1040,6 +1103,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             AccHiddenColumns  = existing.AccHiddenColumns,
             MerchHiddenColumns = existing.MerchHiddenColumns,
             TxnHiddenColumns  = existing.TxnHiddenColumns,
+            // Admin machine IP — carry forward; set via webapp Settings page
+            AdminMachineIp    = existing.AdminMachineIp,
         });
 
         // Keep PaymentServiceManager .cs line 2359 in sync with entity custom

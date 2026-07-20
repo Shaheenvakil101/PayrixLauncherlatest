@@ -90,6 +90,8 @@ public class AppSettings
     public bool   DisbSectionPinned       { get; set; } = false;
     public bool   IsDarkMode           { get; set; } = false;
     public bool   IsRestrictedMode     { get; set; } = true;   // true = webhook-only (for shared users)
+    // IP/hostname of the authorised admin machine — empty = no restriction (show all settings)
+    public string AdminMachineIp      { get; set; } = "";
 
     // Tab visibility — list of nav-button Tag numbers that are hidden (empty = all visible)
     // Overview (0) and Settings (8) are always visible regardless of this list.

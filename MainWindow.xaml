@@ -4853,6 +4853,80 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- ── Admin Machine ─────────────────────────────────── -->
+                            <TextBlock Text="Admin Machine" FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource PrimaryText}" Margin="0,0,0,12"/>
+                            <Border x:Name="AdminMachineCard"
+                                    Background="{DynamicResource CardBg}" CornerRadius="14"
+                                    Padding="22,18" Margin="0,0,0,24"
+                                    BorderBrush="{DynamicResource CardBorder}" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="Register this machine as the admin machine to show all settings. On other machines only webhook-related settings are visible."
+                                               FontSize="12" Foreground="{DynamicResource SubText}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock FontSize="12" Foreground="{DynamicResource SubText}">
+                                                <Run>Current IP: </Run>
+                                                <Run x:Name="AdminCurrentIpRun" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource PrimaryText}"/>
+                                            </TextBlock>
+                                            <TextBlock x:Name="AdminRegisteredIpText"
+                                                       FontSize="11.5" Foreground="{DynamicResource SubText}" Margin="0,4,0,0" Visibility="Collapsed">
+                                                <Run>Registered IP: </Run>
+                                                <Run x:Name="AdminRegisteredIpRun" FontFamily="Consolas" FontSize="11" Foreground="#16A34A"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Border x:Name="AdminRegisteredBadge" Grid.Column="1" Margin="12,0,0,0"
+                                                Background="#DCFCE7" CornerRadius="10" Padding="8,2"
+                                                VerticalAlignment="Center" HorizontalAlignment="Left"
+                                                Visibility="Collapsed">
+                                            <TextBlock Text="✓ Registered" FontSize="11" FontWeight="SemiBold" Foreground="#16A34A"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button x:Name="AdminRegisterBtn"
+                                                    Content="Register this machine as admin"
+                                                    Height="32" Padding="16,0" FontSize="12" FontWeight="SemiBold"
+                                                    Cursor="Hand" Margin="0,0,8,0"
+                                                    Click="AdminRegisterBtn_Click"
+                                                    Background="#7C3AED" Foreground="White"
+                                                    BorderThickness="0">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                            <Button x:Name="AdminUnregisterBtn"
+                                                    Content="Unregister"
+                                                    Height="32" Padding="14,0" FontSize="12"
+                                                    Cursor="Hand" Visibility="Collapsed"
+                                                    Click="AdminUnregisterBtn_Click"
+                                                    Background="{DynamicResource DarkBtnBg}"
+                                                    BorderBrush="{DynamicResource CardBorder}"
+                                                    Foreground="#DC2626"
+                                                    BorderThickness="1">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
                             <!-- ── About ─────────────────────────────────────────── -->
                             <TextBlock Text="About" FontSize="15" FontWeight="SemiBold"
                                        Foreground="{DynamicResource PrimaryText}" Margin="0,0,0,12"/>
