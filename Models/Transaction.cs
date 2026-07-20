@@ -511,6 +511,9 @@ public class Transaction : INotifyPropertyChanged
         _ => $"Type {Type}"
     };
 
+    /// <summary>Chip label for the TYPE column: "ACH" for eCheck types, "Card" for card types.</summary>
+    public string TypeChipLabel => (Type == 7 || Type == 8) ? "ACH" : "Card";
+
     public bool IsAch => Type == 7 || Type == 8;
 
     /// <summary>
@@ -560,33 +563,36 @@ public class Transaction : INotifyPropertyChanged
         }
     }
 
-    /// <summary>Hex colour for the status badge — used in the DataGrid via StringToBrushConverter.</summary>
+    /// <summary>Hex colour for the status badge — matches webapp badge colors.</summary>
     public string StatusColor
     {
         get
         {
             var lbl = StatusLabel;
-            // Green — success / settled
-            if (lbl == "Approved" || lbl == "ACH Approved")
-                return "#17A34A";
-            // Blue — captured / settled / disbursed
-            if (lbl == "Captured" || lbl == "Settled" || lbl == "ACH Settled" || lbl == "Disbursed")
-                return "#2c99f0";
-            // Amber — reversals / voids / in-transit
-            if (lbl == "Refunded"    || lbl == "ACH Refunded" ||
-                lbl == "Voided"      || lbl == "ACH Pending")
-                return "#D87706";
-            // Red — failures / returns / declines / errors
+            // Green — approved / settled / disbursed
+            if (lbl == "Approved"   || lbl == "ACH Approved" ||
+                lbl == "Settled"    || lbl == "ACH Settled"  || lbl == "Disbursed")
+                return "#16A34A";
+            // Cyan — captured / processing
+            if (lbl == "Captured")
+                return "#0891B2";
+            // Amber — pending / in-transit
+            if (lbl == "Pending" || lbl == "ACH Pending")
+                return "#D97706";
+            // Purple — refunded / held
+            if (lbl == "Refunded"         || lbl == "ACH Refunded" ||
+                lbl == "Refund Returned"  || lbl == "Held")
+                return "#7C3AED";
+            // Gray — voided
+            if (lbl == "Voided")
+                return "#6B7280";
+            // Red — failures / returns / declines
             if (lbl == "Returned"          || lbl == "ACH Returned"     ||
-                lbl == "ACH Return"         || lbl == "Refund Returned"  ||
-                lbl == "Returned & Refunded"|| lbl == "Declined"         ||
-                lbl == "ACH Declined"       || lbl == "Error"            ||
+                lbl == "ACH Return"         || lbl == "Returned & Refunded" ||
+                lbl == "Declined"           || lbl == "ACH Declined"    ||
                 lbl == "Disbursement Failed")
-                return "#DC2625";
-            // Purple — held
-            if (lbl == "Held")
-                return "#6D28D9";
-            // Gray — pending / unknown
+                return "#DC2626";
+            // Gray — unknown
             return "#64748B";
         }
     }

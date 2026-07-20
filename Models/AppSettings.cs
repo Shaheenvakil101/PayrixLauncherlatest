@@ -96,8 +96,10 @@ public class AppSettings
     public List<int> HiddenTabs        { get; set; } = [];
 
     // Column chooser — header column indices that are hidden (empty = all visible)
-    public List<int> AccHiddenColumns   { get; set; } = [];
-    public List<int> MerchHiddenColumns { get; set; } = [];
+    public List<int> AccHiddenColumns    { get; set; } = [];
+    public List<int> MerchHiddenColumns  { get; set; } = [];
+    // Transaction DataGrid column chooser — header strings of hidden columns
+    public List<string> TxnHiddenColumns { get; set; } = [];
     public double WindowWidth          { get; set; } = 1250;
     public double WindowHeight         { get; set; } = 960;
     public double WindowLeft           { get; set; } = double.NaN;

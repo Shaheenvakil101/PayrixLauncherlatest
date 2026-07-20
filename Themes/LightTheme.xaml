@@ -2,18 +2,18 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- ═══════════════════════════════════════════════════════════════════════
-         QUICKBOOKS-INSPIRED DESIGN SYSTEM — LIGHT THEME
-         Primary Green #2CA01C · Navy Sidebar #0F172A · BG #F8FAFC
-         Cards #FFFFFF · Accent Blue #2563EB · Radius 12px cards / 8px controls
-         Font: Segoe UI Variable / Inter
+         BQE ePayment Tools — LIGHT THEME
+         Primary Green #16A34A · Sidebar #0C0E14 · BG #F1F5F9
+         Cards #FFFFFF · Accent Blue #2563EB · Radius 8px controls / 12px cards
+         Font: Segoe UI Variable / Inter · Matches webapp light mode exactly
          ═══════════════════════════════════════════════════════════════════════ -->
 
     <!-- ── Window / App background ─────────────────────────────────────────── -->
-    <SolidColorBrush x:Key="WindowBg"           Color="#F8FAFC"/>
+    <SolidColorBrush x:Key="WindowBg"           Color="#F1F5F9"/>
 
-    <!-- ── Sidebar — dark navy, QuickBooks style ────────────────────────────── -->
-    <SolidColorBrush x:Key="SidebarBg"          Color="#0F172A"/>
-    <SolidColorBrush x:Key="SidebarBorder"      Color="#1E293B"/>
+    <!-- ── Sidebar — deep dark, same as webapp dark sidebar ─────────────────── -->
+    <SolidColorBrush x:Key="SidebarBg"          Color="#0C0E14"/>
+    <SolidColorBrush x:Key="SidebarBorder"      Color="#1A1D27"/>
     <SolidColorBrush x:Key="SidebarNavFg"       Color="#94A3B8"/>
 
     <!-- ── Cards / surfaces ─────────────────────────────────────────────────── -->
@@ -41,8 +41,8 @@
 
     <!-- ── Tabs — QB green active indicator ────────────────────────────────── -->
     <SolidColorBrush x:Key="TabFg"              Color="#64748B"/>
-    <SolidColorBrush x:Key="TabSelectedFg"      Color="#2CA01C"/>
-    <SolidColorBrush x:Key="TabSelectedBorder"  Color="#2CA01C"/>
+    <SolidColorBrush x:Key="TabSelectedFg"      Color="#16A34A"/>
+    <SolidColorBrush x:Key="TabSelectedBorder"  Color="#16A34A"/>
     <SolidColorBrush x:Key="TabControlBg"       Color="#FFFFFF"/>
     <SolidColorBrush x:Key="TabHoverBg"         Color="#F1F5F9"/>
 
@@ -52,9 +52,9 @@
 
     <!-- ── KPI cards ─────────────────────────────────────────────────────────── -->
     <SolidColorBrush x:Key="StatCountFg"        Color="#0F172A"/>
-    <SolidColorBrush x:Key="KpiHeaderBg"        Color="#2CA01C"/>
+    <SolidColorBrush x:Key="KpiHeaderBg"        Color="#16A34A"/>
     <SolidColorBrush x:Key="KpiHeaderFg"        Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="KpiValueFg"         Color="#2CA01C"/>
+    <SolidColorBrush x:Key="KpiValueFg"         Color="#16A34A"/>
     <SolidColorBrush x:Key="KpiCardBorder"      Color="#E2E8F0"/>
 
     <!-- ── Semantic ──────────────────────────────────────────────────────────── -->
@@ -81,7 +81,7 @@
     <SolidColorBrush x:Key="JsonInputBg"              Color="#F8FAFC"/>
     <SolidColorBrush x:Key="JsonInputBorder"          Color="#CBD5E1"/>
     <SolidColorBrush x:Key="JsonOutputGreenBg"        Color="#F0FDF4"/>
-    <SolidColorBrush x:Key="JsonOutputGreenBorder"    Color="#2CA01C"/>
+    <SolidColorBrush x:Key="JsonOutputGreenBorder"    Color="#16A34A"/>
     <SolidColorBrush x:Key="JsonOutputYellowBg"       Color="#FFFBEB"/>
     <SolidColorBrush x:Key="JsonOutputYellowBorder"   Color="#F59E0B"/>
 
@@ -92,18 +92,18 @@
 
     <!-- ── Info banner ───────────────────────────────────────────────────────── -->
     <SolidColorBrush x:Key="InfoBannerBg"       Color="#F0FDF4"/>
-    <SolidColorBrush x:Key="InfoBannerBorder"   Color="#2CA01C"/>
+    <SolidColorBrush x:Key="InfoBannerBorder"   Color="#16A34A"/>
     <SolidColorBrush x:Key="InfoBannerTitleFg"  Color="#166534"/>
-    <SolidColorBrush x:Key="InfoBannerNumFg"    Color="#2CA01C"/>
+    <SolidColorBrush x:Key="InfoBannerNumFg"    Color="#16A34A"/>
     <SolidColorBrush x:Key="InfoBannerTextFg"   Color="#334155"/>
 
     <!-- ── Search card ───────────────────────────────────────────────────────── -->
     <SolidColorBrush x:Key="SearchCardBg"       Color="#FFFFFF"/>
     <SolidColorBrush x:Key="SearchCardBorder"   Color="#E2E8F0"/>
 
-    <!-- ── Logo badge — QB green gradient ──────────────────────────────────── -->
+    <!-- ── Logo badge — BQE green gradient ─────────────────────────────────── -->
     <LinearGradientBrush x:Key="LogoBadgeBg" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#2CA01C" Offset="0"/>
+        <GradientStop Color="#15803D" Offset="0"/>
         <GradientStop Color="#16A34A" Offset="1"/>
     </LinearGradientBrush>
 
@@ -122,13 +122,13 @@
 
     <!-- ── Webhook panel ──────────────────────────────────────────────────────── -->
     <SolidColorBrush x:Key="WebhookPanelBg"       Color="#F0FDF4"/>
-    <SolidColorBrush x:Key="WebhookPanelBorder"   Color="#2CA01C"/>
+    <SolidColorBrush x:Key="WebhookPanelBorder"   Color="#16A34A"/>
     <SolidColorBrush x:Key="WebhookConfigBg"      Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="WebhookConfigBorder"  Color="#2CA01C"/>
+    <SolidColorBrush x:Key="WebhookConfigBorder"  Color="#16A34A"/>
     <SolidColorBrush x:Key="WebhookConfigFg"      Color="#0F172A"/>
 
     <!-- ── Info strips ───────────────────────────────────────────────────────── -->
-    <SolidColorBrush x:Key="InfoStripGreenBorder"     Color="#2CA01C"/>
+    <SolidColorBrush x:Key="InfoStripGreenBorder"     Color="#16A34A"/>
     <SolidColorBrush x:Key="InfoStripBlueBorder"      Color="#2563EB"/>
     <SolidColorBrush x:Key="InfoStripGreenFg"         Color="#0F172A"/>
     <SolidColorBrush x:Key="InfoStripBlueFg"          Color="#0F172A"/>
@@ -164,7 +164,7 @@
     <SolidColorBrush x:Key="DarkBorder"          Color="#E2E8F0"/>
     <SolidColorBrush x:Key="DarkText"            Color="#0F172A"/>
     <SolidColorBrush x:Key="DarkSubText"         Color="#64748B"/>
-    <SolidColorBrush x:Key="DarkAccent"          Color="#2CA01C"/>
+    <SolidColorBrush x:Key="DarkAccent"          Color="#16A34A"/>
     <SolidColorBrush x:Key="DarkBtnBg"           Color="#F1F5F9"/>
     <SolidColorBrush x:Key="DarkBtnBgHover"      Color="#E2E8F0"/>
     <SolidColorBrush x:Key="DarkScrollBg"        Color="#F8FAFC"/>
@@ -190,6 +190,10 @@
     <SolidColorBrush x:Key="GreenHighlightBg"       Color="#F0FDF4"/>
     <SolidColorBrush x:Key="GreenHighlightBorder"   Color="#BBF7D0"/>
     <SolidColorBrush x:Key="GreenHighlightFg"       Color="#16A34A"/>
+
+    <!-- ── Icon badge backgrounds ──────────────────────────────────────── -->
+    <SolidColorBrush x:Key="GreenIconBadgeBg"       Color="#F0FDF4"/>
+    <SolidColorBrush x:Key="GreenIconBadgeFg"       Color="#16A34A"/>
     <SolidColorBrush x:Key="RedHighlightBg"         Color="#FEF2F2"/>
     <SolidColorBrush x:Key="RedHighlightBorder"     Color="#FECACA"/>
     <SolidColorBrush x:Key="RedHighlightFg"         Color="#DC2626"/>
@@ -217,6 +221,26 @@
     <SolidColorBrush x:Key="OverlayCountFg"          Color="#1E40AF"/>
 
 
+    <!-- ── Accounts tab semantic colors ─────────────────────────────────────── -->
+    <SolidColorBrush x:Key="BorderBrush"             Color="#E2E8F0"/>
+    <SolidColorBrush x:Key="VerifiedBadgeBg"         Color="#F0FDF4"/>
+    <SolidColorBrush x:Key="VerifiedBadgeBorder"     Color="#86EFAC"/>
+    <SolidColorBrush x:Key="VerifiedBadgeFg"         Color="#166534"/>
+    <SolidColorBrush x:Key="VolumeValueFg"           Color="#16A34A"/>
+    <SolidColorBrush x:Key="CoreLinkedBg"            Color="#DCFCE7"/>
+    <SolidColorBrush x:Key="CoreLinkedFg"            Color="#166534"/>
+    <SolidColorBrush x:Key="CoreNotLinkedBg"         Color="#F1F5F9"/>
+    <SolidColorBrush x:Key="CoreNotLinkedFg"         Color="#94A3B8"/>
+    <SolidColorBrush x:Key="PinnedRowBg"             Color="#EEF2FF"/>
+    <SolidColorBrush x:Key="PinnedRowBorder"         Color="#818CF8"/>
+    <SolidColorBrush x:Key="PinnedChipBg"            Color="#EEF2FF"/>
+    <SolidColorBrush x:Key="PinnedChipFg"            Color="#4338CA"/>
+    <SolidColorBrush x:Key="PagePillBg"              Color="#16A34A"/>
+    <SolidColorBrush x:Key="PagePillFg"              Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ToggleBtnActiveBg"       Color="#D97706"/>
+    <SolidColorBrush x:Key="ToggleBtnActiveHoverBg"  Color="#B45309"/>
+    <SolidColorBrush x:Key="ToggleBtnBusyBg"         Color="#9CA3AF"/>
+
     <!-- ═══════════════════════════════════════════════════════════════════════
          SCROLLBAR — thin auto-hide style
          ═══════════════════════════════════════════════════════════════════════ -->
@@ -233,7 +257,7 @@
                             <Setter TargetName="Bd" Property="Background" Value="#94A3B8"/>
                         </Trigger>
                         <Trigger Property="IsDragging" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#2CA01C"/>
+                            <Setter TargetName="Bd" Property="Background" Value="#16A34A"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -362,8 +386,8 @@
         <Setter Property="Foreground"      Value="#0F172A"/>
         <Setter Property="BorderBrush"     Value="#CBD5E1"/>
         <Setter Property="BorderThickness" Value="1.5"/>
-        <Setter Property="CaretBrush"      Value="#2CA01C"/>
-        <Setter Property="SelectionBrush"  Value="#2CA01C"/>
+        <Setter Property="CaretBrush"      Value="#16A34A"/>
+        <Setter Property="SelectionBrush"  Value="#16A34A"/>
         <Setter Property="SelectionOpacity" Value="0.25"/>
         <Setter Property="FontFamily"      Value="Segoe UI Variable Display, Segoe UI Variable Text, Inter, Segoe UI"/>
         <Setter Property="Padding"         Value="10,7"/>
@@ -382,7 +406,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="#2CA01C"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="#16A34A"/>
                             <Setter TargetName="Bd" Property="BorderThickness" Value="2"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -406,7 +430,7 @@
         <Setter Property="Foreground"      Value="#0F172A"/>
         <Setter Property="BorderBrush"     Value="#CBD5E1"/>
         <Setter Property="BorderThickness" Value="1.5"/>
-        <Setter Property="CaretBrush"      Value="#2CA01C"/>
+        <Setter Property="CaretBrush"      Value="#16A34A"/>
         <Setter Property="FontFamily"      Value="Segoe UI Variable Display, Segoe UI Variable Text, Inter, Segoe UI"/>
         <Setter Property="Padding"         Value="10,7"/>
         <Setter Property="Template">
@@ -423,7 +447,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsFocused" Value="True">
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="#2CA01C"/>
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="#16A34A"/>
                             <Setter TargetName="Bd" Property="BorderThickness" Value="2"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -480,7 +504,7 @@
                                             <Setter TargetName="TBd" Property="BorderBrush" Value="#64748B"/>
                                         </Trigger>
                                         <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="TBd" Property="BorderBrush"     Value="#2CA01C"/>
+                                            <Setter TargetName="TBd" Property="BorderBrush"     Value="#16A34A"/>
                                             <Setter TargetName="TBd" Property="BorderThickness" Value="2"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
@@ -583,8 +607,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="TabBorder" Property="BorderBrush" Value="#2CA01C"/>
-                            <Setter Property="Foreground" Value="#2CA01C"/>
+                            <Setter TargetName="TabBorder" Property="BorderBrush" Value="#16A34A"/>
+                            <Setter Property="Foreground" Value="#16A34A"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Foreground" Value="#0F172A"/>
@@ -633,11 +657,11 @@
         </Setter>
     </Style>
 
-    <!-- PrimaryButton — QB Green #2CA01C -->
+    <!-- PrimaryButton — QB Green #16A34A -->
     <Style x:Key="PrimaryButton" TargetType="Button">
-        <Setter Property="Background"      Value="#2CA01C"/>
+        <Setter Property="Background"      Value="#16A34A"/>
         <Setter Property="Foreground"      Value="#FFFFFF"/>
-        <Setter Property="BorderBrush"     Value="#22881A"/>
+        <Setter Property="BorderBrush"     Value="#15803D"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Cursor"          Value="Hand"/>
         <Setter Property="Padding"         Value="18,8"/>
@@ -652,16 +676,16 @@
                             CornerRadius="8" Padding="{TemplateBinding Padding}">
                         <Border.Effect>
                             <DropShadowEffect BlurRadius="12" ShadowDepth="0"
-                                              Opacity="0.20" Color="#2CA01C"/>
+                                              Opacity="0.20" Color="#16A34A"/>
                         </Border.Effect>
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#22881A"/>
+                            <Setter TargetName="Bd" Property="Background" Value="#15803D"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#1A6B14"/>
+                            <Setter TargetName="Bd" Property="Background" Value="#166534"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.45"/>
@@ -686,8 +710,8 @@
     <Style TargetType="DatePickerTextBox">
         <Setter Property="Background"             Value="Transparent"/>
         <Setter Property="Foreground"             Value="#0F172A"/>
-        <Setter Property="CaretBrush"             Value="#2CA01C"/>
-        <Setter Property="SelectionBrush"         Value="#2CA01C"/>
+        <Setter Property="CaretBrush"             Value="#16A34A"/>
+        <Setter Property="SelectionBrush"         Value="#16A34A"/>
         <Setter Property="SelectionOpacity"       Value="0.25"/>
         <Setter Property="BorderThickness"        Value="0"/>
         <Setter Property="Padding"                Value="8,6"/>

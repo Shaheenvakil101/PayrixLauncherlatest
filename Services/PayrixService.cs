@@ -142,7 +142,7 @@ public class PayrixService
         return new HttpClient(handler)
         {
             BaseAddress = new Uri(baseUrl),
-            Timeout     = TimeSpan.FromSeconds(60)
+            Timeout     = TimeSpan.FromSeconds(180)
         };
     }
 
@@ -160,7 +160,7 @@ public class PayrixService
         _client = new HttpClient(handler)
         {
             BaseAddress = new Uri(environment == PayrixEnvironment.Sandbox ? SandboxBaseUrl : ProductionBaseUrl),
-            Timeout     = TimeSpan.FromSeconds(60)
+            Timeout     = TimeSpan.FromSeconds(180)
         };
         _client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         _ = baseClient; // suppress unused warning
@@ -168,11 +168,31 @@ public class PayrixService
 
     // ── Fetch single transaction by ID ────────────────────────────────────────
 
+    // Known non-transaction Payrix ID prefixes → friendly entity name
+    private static readonly Dictionary<string, string> _nonTxnPrefixes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "p1_dbm_",  "Disbursement Batch" },
+        { "p1_disb_", "Disbursement" },
+        { "p1_mer_",  "Merchant" },
+        { "p1_ent_",  "Entity" },
+        { "p1_acc_",  "Account" },
+        { "p1_pay_",  "Payment" },
+        { "p1_sub_",  "Subscription" },
+        { "p1_plan_", "Plan" },
+        { "p1_cust_", "Customer" },
+    };
+
     public async Task<(Transaction? transaction, string rawJson, string? error)> GetTransactionAsync(string txnId)
     {
         var lastJson = "";
         try
         {
+            // Detect non-transaction IDs early and return a helpful message
+            foreach (var kv in _nonTxnPrefixes)
+            {
+                if (txnId.StartsWith(kv.Key, StringComparison.OrdinalIgnoreCase))
+                    return (null, "{}", $"'{txnId}' is a {kv.Value} ID, not a Transaction ID.");
+            }
             // ── Run all 3 strategies in parallel — take the first that returns an exact ID match ──
             // Strategy 1: exact-ID path   (standard Payrix API)
             // Strategy 2: query-string search  (sandbox search param in URL)
@@ -2608,8 +2628,11 @@ public class PayrixService
     }
 
     /// <summary>
-    /// Sets a merchant's status via PUT /merchants/{id} (falls back to PATCH on 405).
-    /// status: 1 = Active, 2 = Inactive, 3 = Suspended.
+    /// Sets a merchant's status via PUT /merchants/{id}.
+    /// Payrix status codes: 0=Created, 1=Active, 2=Boarded/Live, 3=Inactive, 4=Suspended.
+    /// Both 1 and 2 are live states. To reactivate a deactivated merchant, use status=2.
+    /// Note: autoBoarded is Payrix-internal and must NOT be sent — Payrix returns HTTP 200
+    /// with response.errors when it receives that field, silently rejecting the update.
     /// Returns (updatedMerchant, rawJson, error).
     /// </summary>
     public async Task<(Merchant? merchant, string rawJson, string? error)>
@@ -2618,34 +2641,23 @@ public class PayrixService
         var json = "{}";
         try
         {
-            var url = $"/merchants/{Uri.EscapeDataString(merchantId)}";
+            var url     = $"/merchants/{Uri.EscapeDataString(merchantId)}";
+            var payload = JsonSerializer.Serialize(new { status = newStatus });
+            var content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
 
-            // Payrix status codes: 0=Created, 1=Submitted, 2=Active/Boarded, 3=Inactive, 4=Suspended
-            // Activating (status→2): include autoBoarded=1 to bypass sandbox underwriting check.
-            object body = newStatus == 2
-                ? new { status = 2, autoBoarded = 1 }
-                : new { status = newStatus };
-            var payload = JsonSerializer.Serialize(body);
-
-            StringContent MakeBody() => new(payload, System.Text.Encoding.UTF8, "application/json");
-
-            // Try PUT first; fall back to PATCH if the server returns 405 Method Not Allowed
-            var resp = await _client.PutAsync(url, MakeBody()).ConfigureAwait(false);
-            if (resp.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed)
-            {
-                var patchReq = new HttpRequestMessage(HttpMethod.Patch, url) { Content = MakeBody() };
-                resp = await _client.SendAsync(patchReq).ConfigureAwait(false);
-            }
-
+            var resp = await _client.PutAsync(url, content).ConfigureAwait(false);
             json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             if (!resp.IsSuccessStatusCode)
             {
-                // Surface the Payrix error body so the caller can show it
-                string detail = ExtractPayrixError(json)
-                                ?? $"HTTP {(int)resp.StatusCode} {resp.ReasonPhrase}";
+                string detail = ExtractPayrixError(json) ?? $"HTTP {(int)resp.StatusCode} {resp.ReasonPhrase}";
                 return (null, json, detail);
             }
+
+            // Payrix returns HTTP 200 even for rejected operations — errors live in response.errors
+            var bodyErr = ExtractPayrixError(json);
+            if (bodyErr != null)
+                return (null, json, bodyErr);
 
             // Parse wrapped { response: { data: [...] } } or direct object
             try

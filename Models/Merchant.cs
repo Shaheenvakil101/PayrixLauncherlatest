@@ -180,25 +180,24 @@ public class Merchant : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Payrix status codes: 0=Created, 1=Submitted, 2=Active/Boarded, 3=Inactive, 4=Suspended.
-    /// Only status=2 (Active/Boarded) is live → button says "Deactivate".
-    /// All other statuses → button says "Activate".
+    /// Payrix status codes: 0=Created, 1=Active, 2=Boarded/Live, 3=Inactive, 4=Suspended.
+    /// Both 1 and 2 are live states that can process payments.
     /// </summary>
-    public bool IsLive => Status == 2;
+    public bool IsLive => Status == 1 || Status == 2;
     public string ToggleStatusLabel => IsLive ? "Deactivate" : "Activate";
 
     public string StatusLabel => Status switch
     {
         0 => "Created",
-        1 => "Submitted",
-        2 => "Active",
+        1 => "Active",
+        2 => "Boarded",
         3 => "Inactive",
         4 => "Suspended",
         _ => $"Status {Status}"
     };
     // Semi-transparent backgrounds (26 ≈ 15 % alpha) work in both light and dark themes
-    public string StatusColor => Status switch { 2 => "#22C55E", 1 => "#F59E0B", 0 => "#6366F1", 3 => "#9CA3AF", 4 => "#EF4444", _ => "#9CA3AF" };
-    public string StatusBg    => Status switch { 2 => "#2622C55E", 1 => "#26F59E0B", 0 => "#266366F1", 3 => "#269CA3AF", 4 => "#26EF4444", _ => "#269CA3AF" };
+    public string StatusColor => Status switch { 1 or 2 => "#22C55E", 0 => "#6366F1", 3 => "#9CA3AF", 4 => "#EF4444", _ => "#9CA3AF" };
+    public string StatusBg    => Status switch { 1 or 2 => "#2622C55E", 0 => "#266366F1", 3 => "#269CA3AF", 4 => "#26EF4444", _ => "#269CA3AF" };
 
     public string KycLabel => Kyc?.Status switch
     {

@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Microsoft.Data.SqlClient;
 using System.IO;
@@ -103,6 +103,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         // Always start on Transaction Viewer (visible in both modes)
         _activeNavBtn = (System.Windows.Controls.Button)NavTxnViewer;
         MainTabControl.SelectedIndex = 0;
+        UpdateScreenHeader(0);
         // Refresh Overview KPIs whenever the transaction collection changes
         // (_suppressKpiRefresh batches bulk adds so we only recompute once at the end)
         _transactions.CollectionChanged += (_, _) => { if (!_suppressKpiRefresh) RefreshOverviewKpis(); };
@@ -161,6 +162,31 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     // ── Sidebar navigation ────────────────────────────────────────────────────
 
+    private static readonly (string Icon, string Title, string Subtitle)[] _screenMeta = new[]
+    {
+        /* 0  */ ("📊", "Overview",       "High-level summary of the currently loaded transactions"),
+        /* 1  */ ("↔",  "Transactions",   "Search, inspect, and export payment transactions"),
+        /* 2  */ ("📋", "Line Items",     "Itemized breakdown of transaction line items"),
+        /* 3  */ ("🔔", "Webhook Tests",  "Configure and test webhook event delivery"),
+        /* 4  */ ("{}","Raw JSON",        "View and edit raw transaction JSON payload"),
+        /* 5  */ ("🔧", "JSON Tools",     "Format, validate, and diff JSON payloads"),
+        /* 6  */ ("🔑", "Crypto",         "Encode, decode, and hash utilities"),
+        /* 7  */ ("🌐", "Payrix Portal",  "Open the Payrix merchant portal"),
+        /* 8  */ ("⚙",  "Settings",       "Configure API keys and app preferences"),
+        /* 9  */ ("❓", "Help & Docs",    "Documentation and help resources"),
+        /* 10 */ ("📈", "Dashboard",      "Payment analytics and reporting dashboard"),
+        /* 11 */ ("💸", "Disbursements",  "Browse and inspect disbursement batches"),
+        /* 12 */ ("🏦", "Accounts",       "Manage payment accounts"),
+        /* 13 */ ("🏪", "Merchants",      "Browse and manage merchant records"),
+        /* 14 */ ("📄", "Reports",        "Generate and export payment reports"),
+        /* 15 */ ("🌐", "HTTP Client",    "Make raw HTTP API requests"),
+        /* 16 */ ("⚡", "Performance",    "API response time and health monitoring"),
+        /* 17 */ ("🔁", "Subscriptions",  "Manage recurring payment subscriptions"),
+        /* 18 */ ("🔍", "Fiddler",        "Inspect and replay captured API traffic"),
+        /* 19 */ ("🗄",  "Core DB",        "Browse BQE Core database records"),
+        /* 20 */ ("🔧", "Verify & Repair Merchant", "DB + Payrix health check for a merchant"),
+    };
+
     private void SidebarNav_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not System.Windows.Controls.Button btn) return;
@@ -168,18 +194,47 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         // Switch tab
         if (int.TryParse(btn.Tag?.ToString(), out int tabIdx))
         {
-            MainTabControl.SelectedIndex = tabIdx;
+            if (tabIdx == 3)
+            {
+                WebhookOverlay.Visibility = Visibility.Visible;
+                UpdateScreenHeader(3);
+                UpdateNavActive(btn);
+                return;
+            }
 
-            // Auto-fill Company ID when navigating to Subscriptions tab
+            if (WebhookOverlay?.Visibility == Visibility.Visible)
+                WebhookOverlay.Visibility = Visibility.Collapsed;
+
+            MainTabControl.SelectedIndex = tabIdx;
+            UpdateScreenHeader(tabIdx);
+
             if (tabIdx == 17)
-                SubAutoFillCompanyBtn_Click(btn, e);   // always refresh — loads all companies from DB
+                SubAutoFillCompanyBtn_Click(btn, e);
         }
 
-        // Update active visual
+        UpdateNavActive(btn);
+    }
+
+    private void UpdateScreenHeader(int tabIdx)
+    {
+        if (tabIdx < 0 || tabIdx >= _screenMeta.Length) return;
+        var (icon, title, subtitle) = _screenMeta[tabIdx];
+        PageIconText.Text  = icon;
+        PageTitle.Text     = title;
+        PageSubtitle.Text  = subtitle;
+    }
+
+    private void UpdateNavActive(System.Windows.Controls.Button btn)
+    {
         if (_activeNavBtn != null && _activeNavBtn != btn)
             _activeNavBtn.Style = (System.Windows.Style)Resources["NavBtn"];
-        btn.Style = (System.Windows.Style)Resources["NavBtnActive"];
+        btn.Style   = (System.Windows.Style)Resources["NavBtnActive"];
         _activeNavBtn = btn;
+    }
+
+    private void WebhookOverlayClose_Click(object sender, RoutedEventArgs e)
+    {
+        WebhookOverlay.Visibility = Visibility.Collapsed;
     }
 
     // ── Developer access detection ────────────────────────────────────────────
@@ -800,7 +855,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             KpiGrid.Visibility = Visibility.Collapsed;
             KpiToggleText.Text = "KPIs ▼";
-            KpiToggleBorder.Background = new WpfBrush(WpfColor.FromRgb(224, 231, 255));
+            KpiToggleBorder.Background = (System.Windows.Media.Brush)(TryFindResource("DarkBtnBg") ?? new WpfBrush(WpfColor.FromRgb(33, 38, 45)));
         }
 
         // Restore section collapse states — all default to Visible (XAML defaults).
@@ -808,7 +863,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (s.EmailSectionCollapsed)  { EmailSectionContent.Visibility  = Visibility.Collapsed; EmailSectionArrow.Text  = "▶"; }
         if (s.TxnSectionCollapsed)    { TxnSectionContent.Visibility    = Visibility.Collapsed; TxnSectionArrow.Text    = "▶"; }
         if (s.DisbSectionCollapsed)   { DisbSectionContent.Visibility   = Visibility.Collapsed; DisbSectionArrow.Text   = "▶"; }
-        if (s.SearchPanelCollapsed)   { SearchSectionsPanel.Visibility  = Visibility.Collapsed; ControlsCardArrow.Text  = "Expand"; }
+        // SearchPanelCollapsed intentionally not restored — collapse toggle removed from UI
         // Restore pin states
         if (s.EmailSectionPinned) { EmailPinBtn.Tag = "pinned"; EmailPinBtn.Text = "📌"; EmailPinBtn.ToolTip = "Unpin section"; EmailSectionContent.Visibility = Visibility.Visible; EmailSectionArrow.Text = "▼"; }
         if (s.TxnSectionPinned)   { TxnPinBtn.Tag   = "pinned"; TxnPinBtn.Text   = "📌"; TxnPinBtn.ToolTip   = "Unpin section"; TxnSectionContent.Visibility   = Visibility.Visible; TxnSectionArrow.Text   = "▼"; }
@@ -952,7 +1007,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             EmailSectionPinned = EmailPinBtn.Tag?.ToString() == "pinned",
             TxnSectionPinned   = TxnPinBtn.Tag?.ToString()   == "pinned",
             DisbSectionPinned  = DisbPinBtn.Tag?.ToString()  == "pinned",
-            SearchPanelCollapsed  = SearchSectionsPanel.Visibility  == Visibility.Collapsed,
+            SearchPanelCollapsed  = false,
             WebhookConfigExpanded = WebhookDateFilterPanel.Visibility == Visibility.Visible,
             IsDarkMode         = _isDarkMode,
             IsRestrictedMode   = RestrictedModeChk.IsChecked == true,
@@ -981,6 +1036,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             CoreDbServer     = CoreServerBox.Text.Trim(),
             CoreDbUser       = CoreUserBox.Text.Trim(),
             CoreDbPassword   = CorePasswordBox.Password,
+            // Column chooser — carry forward; managed separately by SaveColumnChooserState
+            AccHiddenColumns  = existing.AccHiddenColumns,
+            MerchHiddenColumns = existing.MerchHiddenColumns,
+            TxnHiddenColumns  = existing.TxnHiddenColumns,
         });
 
         // Keep PaymentServiceManager .cs line 2359 in sync with entity custom
@@ -1068,7 +1127,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         else if (Services.ProxyConfig.IsEnabled)
         {
-            FiddlerTabStatusDot.Foreground    = new WpfBrush(WpfColor.FromRgb(22, 163, 74));
+            FiddlerTabStatusDot.Foreground    = new WpfBrush(WpfColor.FromRgb(124, 58, 237));
             FiddlerTabStatusText.Text         = "⬤ Proxy active";
             FiddlerTabStatusDetail.Text       = $"All requests routed via {Services.ProxyConfig.CurrentUrl}";
         }
@@ -1247,12 +1306,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (!restricted)
         {
             BqeSignInStatus.Text       = "✅  Signed in — full access enabled.";
-            BqeSignInStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            BqeSignInStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
         }
         else
         {
             BqeSignInStatus.Text       = "✅  Signed in (restricted mode).";
-            BqeSignInStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            BqeSignInStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
         }
     }
 
@@ -1318,20 +1377,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void UpdateEnvironmentUI()
     {
-        // Sandbox: indigo when active, neutral card-surface when inactive
+        // Sandbox: BQE green when active, neutral when inactive
         SandboxBorder.Background = IsSandbox
-            ? new WpfBrush(WpfColor.FromRgb(79, 70, 229))   // #4F46E5
+            ? new WpfBrush(WpfColor.FromRgb(124, 58, 237))   // #16A34A
             : (System.Windows.Media.Brush)(TryFindResource("EnvBtnInactiveBg") ?? System.Windows.Media.Brushes.White);
         SandboxBorder.BorderBrush = IsSandbox
-            ? new WpfBrush(WpfColor.FromRgb(67, 56, 202))   // #4338CA
+            ? new WpfBrush(WpfColor.FromRgb(21, 128, 61))   // #15803D
             : (System.Windows.Media.Brush)(TryFindResource("EnvBtnInactiveBorder") ?? new WpfBrush(WpfColor.FromRgb(203, 213, 225)));
 
-        // Production: emerald when active, neutral card-surface when inactive
+        // Production: darker green when active, neutral when inactive
         ProductionBorder.Background = !IsSandbox
-            ? new WpfBrush(WpfColor.FromRgb(5, 150, 105))   // #059669
+            ? new WpfBrush(WpfColor.FromRgb(76, 29, 149))   // #166534
             : (System.Windows.Media.Brush)(TryFindResource("EnvBtnInactiveBg") ?? System.Windows.Media.Brushes.White);
         ProductionBorder.BorderBrush = !IsSandbox
-            ? new WpfBrush(WpfColor.FromRgb(4, 120, 87))    // #047857
+            ? new WpfBrush(WpfColor.FromRgb(20, 83, 45))    // #14532D
             : (System.Windows.Media.Brush)(TryFindResource("EnvBtnInactiveBorder") ?? new WpfBrush(WpfColor.FromRgb(203, 213, 225)));
 
         ActiveUrlText.Text = IsSandbox
@@ -1450,6 +1509,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void TxnColChooserPopup_Closed(object sender, EventArgs e)
     {
         TxnColChooserBtn.IsChecked = false;
+        SaveColumnChooserState();
     }
 
     private void BuildColChooser()
@@ -1497,6 +1557,38 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var view = System.Windows.Data.CollectionViewSource.GetDefaultView(_transactions);
         view.SortDescriptions.Clear();
         view.SortDescriptions.Add(new System.ComponentModel.SortDescription(field, direction));
+    }
+
+    private void TxnSearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        => ApplyTxnGridFilter();
+
+    private void TxnStatusFilter_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        => ApplyTxnGridFilter();
+
+    private void ApplyTxnGridFilter()
+    {
+        if (_transactions is null) return;
+        var view = System.Windows.Data.CollectionViewSource.GetDefaultView(_transactions);
+        var search = TxnSearchBox?.Text?.Trim().ToLowerInvariant() ?? "";
+        var statusTag = (TxnStatusFilter?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag?.ToString() ?? "";
+
+        view.Filter = obj =>
+        {
+            if (obj is not Models.Transaction t) return true;
+            bool matchStatus = string.IsNullOrEmpty(statusTag) ||
+                               (t.StatusLabel?.ToLowerInvariant().Contains(statusTag) == true);
+            bool matchSearch = string.IsNullOrEmpty(search) ||
+                               (t.Id?.ToLowerInvariant().Contains(search) == true) ||
+                               (t.MerchantDisplayName?.ToLowerInvariant().Contains(search) == true) ||
+                               (t.MerchantName?.ToLowerInvariant().Contains(search) == true) ||
+                               (t.Email?.ToLowerInvariant().Contains(search) == true) ||
+                               (t.CustomerName?.ToLowerInvariant().Contains(search) == true);
+            return matchStatus && matchSearch;
+        };
+
+        var count = view.Cast<object>().Count();
+        if (TxnCountLabel != null)
+            TxnCountLabel.Text = count > 0 ? $"{count} result{(count == 1 ? "" : "s")}" : "";
     }
 
     private async void FetchBtn_Click(object sender, RoutedEventArgs e)
@@ -1615,9 +1707,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            SetStatus($"Unexpected error: {ex.Message}", error: true);
-            WpfMessageBox.Show($"Error during fetch:\n\n{ex.Message}\n\n{ex.InnerException?.Message}",
-                "Fetch Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            SetStatus(PayrixErrorHelper.Classify(ex), error: true);
         }
         finally
         {
@@ -1629,8 +1719,41 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     // ── Fetch latest IDs by email ─────────────────────────────────────────────
 
+    private void SearchModeBox_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (SearchModeBox?.SelectedItem is not System.Windows.Controls.ComboBoxItem item) return;
+        var mode = item.Tag?.ToString() ?? "email";
+        var hints = new Dictionary<string, string>
+        {
+            ["email"]     = "Searches transactions for the email above",
+            ["latest"]    = "Fetches the N most-recent transactions (email filter optional)",
+            ["ach"]       = "All ACH / eCheck transactions (types 7 & 8)",
+            ["achreturn"] = "ACH / eCheck transactions that were returned (status 5)",
+            ["achrefund"] = "ACH / eCheck refunds (type 8)",
+            ["card"]      = "All Credit Card transactions (types 1–5)",
+            ["ccrefund"]  = "Credit card refunds (type 5)",
+            ["ccreturn"]  = "Credit card returns/chargebacks (type 4, returned date set)",
+        };
+        if (SearchModeHint != null)
+            SearchModeHint.Text = hints.GetValueOrDefault(mode, "");
+    }
+
     private async void SearchEmailBtn_Click(object sender, RoutedEventArgs e)
     {
+        // Dispatch to category fetch when a category mode is selected
+        var selectedMode = (SearchModeBox?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag?.ToString() ?? "email";
+        var categoryModes = new HashSet<string> { "ach", "achreturn", "achrefund", "card", "ccrefund", "ccreturn" };
+        if (categoryModes.Contains(selectedMode))
+        {
+            await FetchByPaymentCategoryAsync(selectedMode);
+            return;
+        }
+        if (selectedMode == "latest")
+        {
+            await FetchByLatestAsync();
+            return;
+        }
+
         SetBusy(true);
         var apiKey = IsSandbox ? SandboxApiKeyBox.Password.Trim() : ProductionApiKeyBox.Password.Trim();
         var envLabel = IsSandbox ? "Sandbox" : "Production";
@@ -1753,6 +1876,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             UpdateSummary();
             SetConnectionStatus(true);
 
+            // Collapse the email/search section after a successful fetch
+            EmailSectionContent.Visibility = Visibility.Collapsed;
+            EmailSectionArrow.Text = "▶";
+
             var achCount = _transactions.Count(t => t.IsAch);
             var foundMsg = (merchantId != null, hasEmail) switch
             {
@@ -1773,9 +1900,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            SetStatus($"Search failed: {ex.Message}", error: true);
-            WpfMessageBox.Show($"Error searching transactions:\n\n{ex.Message}\n\n{ex.InnerException?.Message}",
-                "Search Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            SetStatus(PayrixErrorHelper.Classify(ex), error: true);
         }
         finally
         {
@@ -1784,6 +1909,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             FetchBtn.IsEnabled = true;
             FetchLatestBtn.IsEnabled = true;
         }
+    }
+
+    private Task FetchByLatestAsync()
+    {
+        FetchLatestBtn_Click(FetchLatestBtn, new RoutedEventArgs());
+        return Task.CompletedTask;
     }
 
     private async void FetchLatestBtn_Click(object sender, RoutedEventArgs e)
@@ -1914,6 +2045,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             UpdateSummary();
             SetConnectionStatus(true);
 
+            // Collapse the email/search section after a successful fetch
+            EmailSectionContent.Visibility = Visibility.Collapsed;
+            EmailSectionArrow.Text = "▶";
+
             var achCount = _transactions.Count(t => t.IsAch);
             var okMsg = (merchantId != null, hasEmail) switch
             {
@@ -1934,9 +2069,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            SetStatus($"Fetch Latest failed: {ex.Message}", error: true);
-            WpfMessageBox.Show($"Error loading transactions:\n\n{ex.Message}\n\n{ex.InnerException?.Message}",
-                "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            SetStatus(PayrixErrorHelper.Classify(ex), error: true);
         }
         finally
         {
@@ -2043,9 +2176,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            SetStatus($"Fetch failed: {ex.Message}", error: true);
-            WpfMessageBox.Show($"Error fetching {label} transactions:\n\n{ex.Message}",
-                "Fetch Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            SetStatus(PayrixErrorHelper.Classify(ex), error: true);
         }
         finally
         {
@@ -2089,6 +2220,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (idx >= 0 && idx < _rawJsons.Count)
                 SetRawJson(PrettyPrint(_rawJsons[idx]));
 
+            // Always navigate to Line Items when a transaction row is clicked
+            MainTabControl.SelectedIndex = 2;
+            UpdateScreenHeader(2);
+            UpdateNavActive(NavLineItems);
             if (txn != _selectedTransaction)
                 _ = LoadItemsForTransactionAsync(txn);
         }
@@ -2308,11 +2443,31 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void ShowItemsPlaceholder(bool show)
     {
-        ItemsPlaceholder.Visibility   = show ? Visibility.Visible   : Visibility.Collapsed;
-        ItemsGrid.Visibility          = show ? Visibility.Collapsed : Visibility.Visible;
-        DisbEntryGrid.Visibility      = Visibility.Collapsed;
-        ItemsGrandTotalRow.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
-        ItemsSummaryBar.Visibility    = show ? Visibility.Collapsed : Visibility.Visible;
+        ItemsPlaceholder.Visibility    = show ? Visibility.Visible   : Visibility.Collapsed;
+        ItemsGrid.Visibility           = show ? Visibility.Collapsed : Visibility.Visible;
+        DisbEntryGrid.Visibility       = Visibility.Collapsed;
+        ItemsGrandTotalRow.Visibility  = show ? Visibility.Collapsed : Visibility.Visible;
+        ItemsSummaryBar.Visibility     = show ? Visibility.Collapsed : Visibility.Visible;
+        ExportLineItemsCsvBtn.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
+        LineItemsBackBtn.Visibility      = show ? Visibility.Collapsed : Visibility.Visible;
+        if (!show && _selectedTransaction != null)
+        {
+            LineItemsContextLabel.Text = $"Txn {_selectedTransaction.Id}  ·  {_items.Count} item{(_items.Count == 1 ? "" : "s")}";
+            LineItemsCountBadge.Text   = $"{_items.Count} items";
+            LineItemsCountBadge.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            LineItemsContextLabel.Text = "Select a transaction to view its line items";
+            LineItemsCountBadge.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void LineItemsBackBtn_Click(object sender, RoutedEventArgs e)
+    {
+        MainTabControl.SelectedIndex = 1;
+        UpdateScreenHeader(1);
+        UpdateNavActive(NavTxn);
     }
 
     private void ShowDisbursementEntries(List<DisbursementEntry> entries)
@@ -2361,6 +2516,32 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    // ── Copy transaction ID button (ACTIONS column) ──────────────────────────
+
+    private void CopyTxnIdBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button btn) return;
+        var txnId = btn.Tag as string;
+        if (string.IsNullOrEmpty(txnId)) return;
+        System.Windows.Clipboard.SetText(txnId);
+        SetStatus($"Copied: {txnId}");
+    }
+
+    // ── Transaction ID column button — navigate to Line Items ────────────────
+
+    private void TxnIdBtn_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button btn) return;
+        var txn = btn.Tag as Transaction;
+        if (txn == null) return;
+
+        MainTabControl.SelectedIndex = 2;
+        UpdateScreenHeader(2);
+        UpdateNavActive(NavLineItems);
+        _ = LoadItemsForTransactionAsync(txn);
+        e.Handled = true;
+    }
+
     // ── Portal link column button ─────────────────────────────────────────────
 
     private void PortalLinkBtn_Click(object sender, RoutedEventArgs e)
@@ -2386,7 +2567,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         else
         {
-            FmtOutputBox.Background = new WpfBrush(WpfColor.FromRgb(240, 253, 244));
+            FmtOutputBox.Background = new WpfBrush(WpfColor.FromRgb(245, 243, 255));
             FmtOutputBox.Text = result;
             SetStatus($"JSON formatted — {result.Length} characters.");
         }
@@ -2410,7 +2591,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         var summary = PayrixLauncher.Services.JsonToolsService.BuildDiffSummary(diffs);
         CmpResultBox.Background = diffs.Count == 0
-            ? new WpfBrush(WpfColor.FromRgb(240, 253, 244))
+            ? new WpfBrush(WpfColor.FromRgb(245, 243, 255))
             : new WpfBrush(WpfColor.FromRgb(255, 251, 235));
         CmpResultBox.Text = summary;
         SetStatus(diffs.Count == 0 ? "JSONs are identical." : $"Found {diffs.Count} difference(s).");
@@ -2958,7 +3139,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 ? $"✅  Loaded {_subscriptions.Count} subscription(s) from Host DB."
                 : "ℹ  No subscriptions found in Host DB for this Company ID.";
             SubStatusText.Foreground = new WpfBrush(_subscriptions.Count > 0
-                ? WpfColor.FromRgb(22, 101, 52) : WpfColor.FromRgb(107, 114, 128));
+                ? WpfColor.FromRgb(76, 29, 149) : WpfColor.FromRgb(107, 114, 128));
         }
         finally
         {
@@ -3268,7 +3449,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             SubCompanyIdBox.SelectedIndex = 0;
             SubResolvedSourceText.Text    = $"{results.Count} companies found for {email}";
             SubStatusText.Text            = $"✅  {results.Count} company/companies found — select from dropdown";
-            SubStatusText.Foreground      = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            SubStatusText.Foreground      = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
 
             var firstId = results[0].companyId;
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
@@ -3478,7 +3659,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
                 : "ℹ  No subscriptions found — see debug log below for details.";
             SubStatusText.Foreground = new WpfBrush(
                 _subscriptions.Count > 0
-                    ? WpfColor.FromRgb(22, 101, 52)
+                    ? WpfColor.FromRgb(76, 29, 149)
                     : WpfColor.FromRgb(107, 114, 128));
         }
         finally
@@ -3559,7 +3740,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             _subscriptions.Remove(pkg);
 
             SubStatusText.Text       = $"✅  '{label}' deleted from Host DB.";
-            SubStatusText.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            SubStatusText.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
             RefreshSubPage();
         }
         finally
@@ -3666,7 +3847,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             int assigned = _allAssignableUsers.Count(u => u.IsAssigned);
             SubAssignCountText.Text    = $"{_allAssignableUsers.Count} user(s) — {assigned} assigned";
             SubAssignStatus.Text       = $"✅  Saved — {assigned} user(s) assigned.";
-            SubAssignStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            SubAssignStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
         }
         finally
         {
@@ -3721,7 +3902,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             SubscriptionsGrid.Items.Refresh();
 
             SubChangeExpiryStatus.Text       = $"✅  Expiry updated to {SubNewExpiryPicker.SelectedDate.Value:dd MMM yyyy}.";
-            SubChangeExpiryStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            SubChangeExpiryStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
         }
         finally
         {
@@ -3775,7 +3956,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             BuildPackagePlanTable();
 
             SubAddStatus.Text       = $"✅  {helper.Packages.Count} package(s) available.";
-            SubAddStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            SubAddStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
         }
         catch (Exception ex)
         {
@@ -4137,7 +4318,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
                 SubRawLogBox.Text += $"\n\n[SetPayrixFlag] Exception: {flagEx.Message}";
             }
 
-            SubAddStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            SubAddStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
             // Keep card open so user can immediately add another plan
             SubAddStatus.Text = "✅  Subscription added — ePayment flag enabled — company status set to Active. Select another plan to add more, or close this card.";
         }
@@ -4203,7 +4384,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
         if (diff == 0)
         {
             FixDiscrepancyStatus.Text       = "✓ Already balanced.";
-            FixDiscrepancyStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            FixDiscrepancyStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
             return;
         }
 
@@ -4247,7 +4428,24 @@ ORDER BY MAX(s.ExpiresOn) DESC";
         var direction   = diff > 0 ? "increased" : "decreased";
         FixDiscrepancyStatus.Text =
             $"✅ Fixed — last item Total {direction} by {diffDollars:C2}  (was {oldTotal / 100m:C2} → now {newTotal / 100m:C2})";
-        FixDiscrepancyStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+        FixDiscrepancyStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
+    }
+
+    private void ExportLineItemsCsv_Click(object sender, RoutedEventArgs e)
+    {
+        if (_items.Count == 0) return;
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = "CSV files (*.csv)|*.csv",
+            FileName = $"line_items_{_selectedTransaction?.Id ?? "export"}.csv"
+        };
+        if (dlg.ShowDialog() != true) return;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Item ID,Transaction ID,Created,Item,Description,Qty,Price,Total,Discount,UM,Commodity Code,Product Code,Discount Treatment,Line Item Indicator");
+        foreach (var i in _items)
+            sb.AppendLine($"{i.Id},{i.Txn},{i.Created},{i.Item},{i.Description},{i.Quantity},{i.PriceFormatted},{i.TotalFormatted},{i.Discount},{i.Um},{i.CommodityCode},{i.ProductCode},{i.DiscountTreatment},{i.LineItemDetailIndicatorLabel}");
+        System.IO.File.WriteAllText(dlg.FileName, sb.ToString());
+        SetStatus($"Exported {_items.Count} line items to CSV.");
     }
 
     private void SetExportEnabled(bool enabled)
@@ -4275,10 +4473,10 @@ ORDER BY MAX(s.ExpiresOn) DESC";
 
         // Update pill border/background to reflect connected state
         ConnectionPill.BorderBrush = connected
-            ? new WpfBrush(WpfColor.FromRgb(187, 247, 208))   // #BBF7D0 green
+            ? new WpfBrush(WpfColor.FromRgb(221, 214, 254))   // #BBF7D0 green
             : new WpfBrush(WpfColor.FromRgb(254, 202, 202));   // #FECACA red
         ConnectionPill.Background = connected
-            ? new WpfBrush(WpfColor.FromRgb(240, 253, 244))    // #F0FDF4 light green
+            ? new WpfBrush(WpfColor.FromRgb(245, 243, 255))    // #F0FDF4 light green
             : new WpfBrush(WpfColor.FromRgb(255, 241, 242));   // #FFF1F2 light red
     }
 
@@ -4378,7 +4576,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
 
         WebhookTestSummary.Foreground = new WpfBrush(
             allPassed
-                ? WpfColor.FromRgb(22, 101, 52)
+                ? WpfColor.FromRgb(76, 29, 149)
                 : WpfColor.FromRgb(153, 27, 27));
         ClearWebhookErrorBtn.Visibility = allPassed ? Visibility.Collapsed : Visibility.Visible;
     }
@@ -4431,7 +4629,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             ? $"✓  {tc.Name} — HTTP {tc.HttpCode}  ({tc.DurationMs} ms)"
             : $"✗  {tc.Name} — {tc.Detail}";
         WebhookTestSummary.Foreground = new WpfBrush(ok
-            ? WpfColor.FromRgb(22, 101, 52)
+            ? WpfColor.FromRgb(76, 29, 149)
             : WpfColor.FromRgb(153, 27, 27));
         ClearWebhookErrorBtn.Visibility = ok ? Visibility.Collapsed : Visibility.Visible;
 
@@ -4543,7 +4741,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
         {
             SetPayload(updated);
             ReplaceFieldStatus.Text     = "✔ replaced";
-            ReplaceFieldStatus.Foreground = new WpfBrush(WpfColor.FromRgb(74, 222, 128));
+            ReplaceFieldStatus.Foreground = new WpfBrush(WpfColor.FromRgb(167, 139, 250));
         }
     }
 
@@ -4768,7 +4966,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             var summary = $"{kvResult}\n{tpsResult}\n{psResult}";
             SignupStateResult.Text = summary;
             SignupStateResult.Foreground = kvResult.StartsWith("✅") || kvResult.Contains("KV:")
-                ? new WpfBrush(WpfColor.FromRgb(22, 101, 52))
+                ? new WpfBrush(WpfColor.FromRgb(76, 29, 149))
                 : new WpfBrush(WpfColor.FromRgb(220, 38, 38));
 
             // Show full result in tooltip
@@ -5838,12 +6036,12 @@ ORDER BY MAX(s.ExpiresOn) DESC";
                             Dispatcher.BeginInvoke(() =>
                             {
                                 AchPostStatus.Text = $"✅  Signup complete! ThirdPartySetting={tpsId}… KV Status=Completed";
-                                AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                                AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
                                 SetStatus("Payrix merchant signup completed successfully");
                                 _signupStep1Done = true;
                                 UpdateSignupGuide(WebhookTypeBox.SelectedIndex, step1Done: true, step2Done: true);
                                 SignupStateResult.Text = $"✅  Completed — ThirdPartySetting {tpsId}…  KV Status=2";
-                                SignupStateResult.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                                SignupStateResult.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
                             });
                             return;
                         }
@@ -6064,7 +6262,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             }
 
             AchPostStatus.Text       = $"✅  Entity created — \"{merchantName}\" → {entityId}";
-            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
 
             // Pre-fill entity ID
             AchTxnIdBox.Text = entityId ?? "";
@@ -6116,7 +6314,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
                 var (cfgLog2, _) = await service.ConfigureMerchantAsync(newMerchantId, entityId!);
                 WebhookPayloadBox.Text += $"\n\nConfigureMerchant steps:\n{cfgLog2}";
                 AchPostStatus.Text = $"✅  Merchant created & configured: {newMerchantId} — creating member…";
-                AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
                 Services.WebhookLogger.LogSuccess("Create Merchant (Payrix)", $"merchantId={newMerchantId}");
 
                 // ── Create member on the ENTITY (not merchant) ──────────────────
@@ -6308,7 +6506,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
                 ? $"✅  Signup via API — step1={resp1.StatusCode} step2={resp2.StatusCode}"
                 : $"⚠  API signup: step1={resp1.StatusCode} ({body1[..Math.Min(60,body1.Length)]}) step2={resp2.StatusCode}";
             AchPostStatus.Foreground = new WpfBrush(ok
-                ? WpfColor.FromRgb(22, 101, 52)
+                ? WpfColor.FromRgb(76, 29, 149)
                 : WpfColor.FromRgb(217, 119, 6));
 
             return resp2.IsSuccessStatusCode;
@@ -6742,7 +6940,7 @@ WHERE {filter}
 
             // ── Done ─────────────────────────────────────────────────────────
             AchPostStatus.Text = $"✅  Signup complete! Entity={entityId[..Math.Min(16,entityId.Length)]}… — refresh Settings → ePayments";
-            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
             SetStatus($"Payrix signup completed for {entityName}");
             _signupStep1Done = true;
             UpdateSignupGuide(WebhookTypeBox.SelectedIndex, step1Done: true, step2Done: true);
@@ -6751,7 +6949,7 @@ WHERE {filter}
             if (SignupStateResult is not null)
             {
                 SignupStateResult.Text       = $"✅  Direct DB signup — ThirdPartySetting + KV written";
-                SignupStateResult.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                SignupStateResult.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
             }
         }
         catch (Exception ex)
@@ -6810,7 +7008,7 @@ WHERE {filter}
         }
 
         AchPostStatus.Text = $"✅  Step 1 OK (HTTP {code1}) — waiting 3 s before Merchant Boarded…";
-        AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+        AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
         _signupStep1Done = true;
         UpdateSignupGuide(8, step1Done: true);
 
@@ -6854,7 +7052,7 @@ WHERE {filter}
         else
         {
             AchPostStatus.Text = $"✅  Both webhooks sent! (step1={code1}, step2={code2}) — checking DB…";
-            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
             UpdateSignupGuide(9, step1Done: true, step2Done: true);
 
             // ── Step 3: Patch DB directly as fallback ────────────────────────
@@ -6952,7 +7150,7 @@ WHERE {filter}
                     if (skipResp.IsSuccessStatusCode)
                     {
                         AchPostStatus.Text       = $"✅  Core processed (no Payrix entry created): {skipBody.Trim()[..Math.Min(skipBody.Trim().Length, 200)]}";
-                        AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                        AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
                         var origInGrid2 = _transactions.FirstOrDefault(t => t.Id == originalTxnId);
                         if (origInGrid2 != null)
                         {
@@ -7033,7 +7231,7 @@ WHERE {filter}
                     if (resp2.IsSuccessStatusCode)
                     {
                         AchPostStatus.Text       = $"✅  Created {newTxnId}  →  HTTP {logCode2}  —  {sw2.ElapsedMilliseconds} ms{snippet}";
-                        AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                        AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
 
                         // Update original transaction in the grid so status reflects the reversal immediately
                         var origInGrid = _transactions.FirstOrDefault(t => t.Id == originalTxnId);
@@ -7154,7 +7352,7 @@ WHERE {filter}
             if (response.IsSuccessStatusCode)
             {
                 AchPostStatus.Text = $"✅  HTTP {logCode}  —  {sw.ElapsedMilliseconds} ms";
-                AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
 
                 // Mark signup flow steps done
                 if (typeIdx == 8) { _signupStep1Done = true;  UpdateSignupGuide(8,  step1Done: true);  }
@@ -7443,7 +7641,7 @@ WHERE {filter}
                     : fetchedId is not null ? $" · {fetchedId}" : "";
                 AchPostStatus.Text       = $"✅  {typeLabel} payload ready{fetchNote}";
                 AchPostStatus.Foreground = entityErr is null
-                    ? new WpfBrush(WpfColor.FromRgb(22, 101, 52))
+                    ? new WpfBrush(WpfColor.FromRgb(76, 29, 149))
                     : new WpfBrush(WpfColor.FromRgb(217, 119, 6));
                 AchFetchBtn.IsEnabled = true;
                 return;
@@ -7575,7 +7773,7 @@ WHERE {filter}
                 if (rec?.Id is not null) await LookupHostDbAsync(rec.Id);
 
                 AchPostStatus.Text       = $"✅  Built from {rec?.Id} — ready to POST{entityInfo}";
-                AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
                 SetStatus($"[{envLabel}] {typeLabel} webhook built from {rec?.Id}.{(accountId is not null ? $" AccountID={accountId}, CompanyID={companyId}" : "")}");
                 WebhookLogger.LogFetch(typeLabel, envLabel, wJson, wp, null);
                 return;
@@ -7705,7 +7903,7 @@ WHERE {filter}
 
             var entitySuffix = fetchAccId is not null ? $"  |  AccountID: {fetchAccId}  CompanyID: {fetchCmpId}" : "";
             AchPostStatus.Text       = $"✅  Built from txn {txn?.Id} — ready to POST{entitySuffix}";
-            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
             SetStatus($"[{envLabel}] {typeLabel} webhook payload built from {txn?.Id} ({txn?.TotalFormatted}).{(fetchAccId is not null ? $" AccountID={fetchAccId}, CompanyID={fetchCmpId}" : "")}");
         }
         catch (Exception ex)
@@ -7805,7 +8003,7 @@ WHERE {filter}
 
                 var entityNote = customField is not null ? $"  |  Custom={customField}" : "";
                 SearchAllStatusText.Text       = $"✅  Built Withdrawal + Withdrawal Processed from {rec.Id}{entityNote}";
-                SearchAllStatusText.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                SearchAllStatusText.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
                 SetStatus($"[{envLabel}] Search All: 2 webhook payloads built from disbursement {rec.Id}.");
                 return;
             }
@@ -7906,7 +8104,7 @@ WHERE {filter}
             var typeNote   = $" (type={txn.Type} {txn.TypeLabel})";
             var entityNote2 = saAccId is not null ? $"  |  AccountID: {saAccId}  CompanyID: {saCmpId}" : "";
             SearchAllStatusText.Text       = $"✅  Built {builtNames.Count} webhook(s){typeNote}: {string.Join(", ", builtNames)}{entityNote2}";
-            SearchAllStatusText.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            SearchAllStatusText.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
             SetStatus($"[{envLabel}] Search All: {builtNames.Count} payload(s) from {txn.Id}.{(saAccId is not null ? $" AccountID={saAccId}, CompanyID={saCmpId}" : "")}");
         }
         catch (Exception ex)
@@ -7963,11 +8161,13 @@ WHERE {filter}
                                 .ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
         PopulateTxnCard(txn, typeIdx);
 
-        // Navigate directly to Webhook Tests tab (TabItem3)
-        MainTabControl.SelectedItem = TabItem3;
+        // Navigate to Webhook Tests overlay
+        WebhookOverlay.Visibility = Visibility.Visible;
+        UpdateScreenHeader(3);
+        UpdateNavActive(NavWebhooks);
 
         AchPostStatus.Text       = $"✅  Built {txn.TypeLabel} webhook from {txn.Id} — ready to POST";
-        AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+        AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
         SetStatus($"Webhook payload built from {txn.Id} ({txn.TotalFormatted}).");
     }
 
@@ -8182,7 +8382,7 @@ WHERE {filter}
             // Move caret past the replacement so Find Next advances correctly
             _rawFindIndex   = selStart + replace.Length - 1;
             RawFindStatus.Text       = "Replaced.";
-            RawFindStatus.Foreground = new WpfBrush(WpfColor.FromRgb(74, 222, 128));
+            RawFindStatus.Foreground = new WpfBrush(WpfColor.FromRgb(167, 139, 250));
         }
         else
         {
@@ -8221,7 +8421,7 @@ WHERE {filter}
             ? $"Replaced {count} occurrence{(count == 1 ? "" : "s")}."
             : "Not found.";
         RawFindStatus.Foreground = count > 0
-            ? new WpfBrush(WpfColor.FromRgb(74, 222, 128))
+            ? new WpfBrush(WpfColor.FromRgb(167, 139, 250))
             : new WpfBrush(WpfColor.FromRgb(239, 68, 68));
     }
 
@@ -9585,7 +9785,7 @@ WHERE {filter}
     }
 
     // ── Dark / Light mode toggle ─────────────────────────────────────────────
-    private bool _isDarkMode = false;   // matches App.xaml loading LightTheme by default
+    private bool _isDarkMode = true;    // matches App.xaml loading DarkTheme by default
 
     private void HelpBtn_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
@@ -9651,6 +9851,7 @@ WHERE {filter}
     {
         _isDarkMode = !_isDarkMode;
         ApplyTheme(_isDarkMode);
+        SaveSettings();
     }
 
     private void ApplyTheme(bool dark)
@@ -9678,14 +9879,14 @@ WHERE {filter}
 
         // Update toggle track colour, border and thumb fill
         ThemeToggleBorder.Background = dark
-            ? new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(55, 48, 90))   // #37305A muted dark purple
-            : new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(232, 234, 246)); // #E8EAF6 light lavender
+            ? new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(46, 16, 101))    // #052E16 dark green tint
+            : new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(245, 243, 255)); // #F0FDF4 light green tint
         ThemeToggleBorder.BorderBrush = dark
-            ? new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(109, 40, 217))  // #6D28D9
-            : new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(197, 202, 233)); // #C5CAE9
+            ? new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(124, 58, 237))  // #16A34A
+            : new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(221, 214, 254)); // #BBF7D0
         ThemeToggleThumb.Fill = dark
-            ? new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(167, 139, 250)) // #A78BFA light purple thumb
-            : new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(79, 70, 229));  // #4F46E5 indigo thumb
+            ? new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(167, 139, 250)) // #4ADE80 bright green
+            : new System.Windows.Media.SolidColorBrush(WpfColor.FromRgb(124, 58, 237)); // #16A34A green
 
         // Update Settings tab theme badge
         if (ThemeActiveBadgeText != null)
@@ -9733,7 +9934,7 @@ WHERE {filter}
     {
         bool collapse = SearchSectionsPanel.Visibility == Visibility.Visible;
         SearchSectionsPanel.Visibility = collapse ? Visibility.Collapsed : Visibility.Visible;
-        ControlsCardArrow.Text = collapse ? "Expand" : "Collapse";
+        // ControlsCardArrow removed — collapse state tracked via SearchSectionsPanel.Visibility
         // Also update emoji prefix
         var border = sender as System.Windows.Controls.Border;
         if (border?.Child is System.Windows.Controls.StackPanel sp && sp.Children[0] is System.Windows.Controls.TextBlock icon)
@@ -9909,6 +10110,20 @@ WHERE {filter}
     private void DisbSectionHeader_Click(object sender, MouseButtonEventArgs e)
         => ToggleSection(DisbSectionContent, DisbSectionArrow, DisbPinBtn);
 
+    private void NavMerchantVerifyBtn_Click(object sender, MouseButtonEventArgs e)
+    {
+        MainTabControl.SelectedIndex = 20;
+        UpdateScreenHeader(20);
+        UpdateNavActive(NavMerchantVerify);
+        if (string.IsNullOrWhiteSpace(VmEmailBox.Text))
+        {
+            var s = Services.SettingsService.Load();
+            VmEmailBox.Text = !string.IsNullOrWhiteSpace(s.CoreAccountEmail)
+                ? s.CoreAccountEmail
+                : s.BqeLoginEmail;
+        }
+    }
+
     private void VerifyMerchantHeader_Click(object sender, MouseButtonEventArgs e)
     {
         bool open = VerifyMerchantContent.Visibility == Visibility.Visible;
@@ -10083,7 +10298,7 @@ WHERE {filter}
             var statusText  = statusCode switch { 0 => "Pending", 1 => "Active", 2 => "Boarded", 3 => "Inactive", _ => $"Unknown ({statusCode})" };
             var statusOk    = statusCode == 1 || statusCode == 2;  // both Active and Boarded are live
             var statusColor = statusOk
-                ? WpfColor.FromRgb(22, 101, 52)
+                ? WpfColor.FromRgb(76, 29, 149)
                 : WpfColor.FromRgb(217, 119, 6);
 
             VmMerchantName.Text     = merchant.Name ?? "(no name)";
@@ -10643,7 +10858,7 @@ WHERE {filter}
             Log("Run iisreset / app-pool recycle on the BQE Core server,");
             Log("then click 🔎 Verify Merchant to confirm.");
 
-            VmFixResult.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            VmFixResult.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
             VmMerchantId.Text = resolvedMerchantId;
             SetVerifyBanner("#166534", "✅  Fix applied — new merchant created and Core DB updated.");
         }
@@ -11472,7 +11687,7 @@ SET CompanySetting = JSON_MODIFY(
             }
             else
             {
-                VdUpdateResult.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                VdUpdateResult.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
                 VdUpdateResult.Text = "✅  Member updated successfully. Re-run health check to refresh details.";
                 VdUpdateWarning.Visibility = Visibility.Collapsed;
             }
@@ -11495,7 +11710,7 @@ SET CompanySetting = JSON_MODIFY(
             VdEntityName.Text   = entName ?? login ?? "(no name)";
             VdEntityCustom.Text = custom ?? "";
             VdEntityStatus.Text = "Active";
-            VdEntityStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            VdEntityStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
         });
 
         // ── Merchant ───────────────────────────────────────────────────────
@@ -11506,7 +11721,7 @@ SET CompanySetting = JSON_MODIFY(
             VdMerchantId.Text   = merch.Id;
             VdMerchantDba.Text  = merch.Dba ?? merch.Name ?? "";
             var stLabel = merch.Status switch { 2 => "✅  Active", 1 => "⚠️  Submitted", 3 => "⚠️  Inactive", 4 => "❌  Suspended", 0 => "⚪  Created", _ => $"Status {merch.Status}" };
-            var stColor = merch.Status == 2 ? WpfColor.FromRgb(22, 101, 52) : WpfColor.FromRgb(220, 38, 38);
+            var stColor = merch.Status == 2 ? WpfColor.FromRgb(76, 29, 149) : WpfColor.FromRgb(220, 38, 38);
             VdMerchantStatus.Text       = stLabel;
             VdMerchantStatus.Foreground = new WpfBrush(stColor);
             VdActivateMerchantBtn.Visibility = merch.Status != 2 ? Visibility.Visible : Visibility.Collapsed;
@@ -11852,7 +12067,7 @@ SET CompanySetting = JSON_MODIFY(
 
                     var lineItemsInfo = disbEntries.Count > 0 ? $"  |  {disbEntries.Count} line item(s) embedded" : "  |  no line items found";
                     AchPostStatus.Text       = $"✅  Payload ready for disbursement {disbId}{lineItemsInfo}";
-                    AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+                    AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
                     SetStatus($"[{envLabel}] Disbursement {disbId} loaded{lineItemsInfo}.");
 
                     ShowDisbursementEntries(disbEntries);
@@ -15270,7 +15485,7 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
             }
 
             VdMerchantStatus.Text       = "✅  Active";
-            VdMerchantStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 101, 52));
+            VdMerchantStatus.Foreground = new WpfBrush(WpfColor.FromRgb(76, 29, 149));
             VdActivateMerchantBtn.Visibility = Visibility.Collapsed;
             SetStatus("✅  Merchant activated successfully.");
         }
@@ -15491,7 +15706,7 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
 
     // ── Column chooser — Accounts ─────────────────────────────────────────────
 
-    private static readonly int[] _accHeaderDataCols = { 0, 2, 4, 6, 8, 10, 12, 14, 16 };
+    private static readonly int[] _accHeaderDataCols = { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18 };
 
     private void AccColumnChooser_Click(object sender, RoutedEventArgs e)
         => AccColChooserPopup.IsOpen = true; // StaysOpen=False handles closing when user clicks away
@@ -15578,6 +15793,10 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
             .Where(cb => cb.Tag is string t && t.Contains(':') && cb.IsChecked != true)
             .Select(cb => int.Parse(((string)cb.Tag!).Split(':')[0]))
             .ToList();
+        s.TxnHiddenColumns = TxnGrid.Columns
+            .Where(c => c.Visibility == Visibility.Collapsed && c.Header is not null)
+            .Select(c => c.Header!.ToString()!)
+            .ToList();
         Services.SettingsService.Save(s);
     }
 
@@ -15606,6 +15825,18 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
             cb.IsChecked = !hidden;
             MerchantHeaderGrid.ColumnDefinitions[headerCol].Width  = hidden ? new GridLength(0) : new GridLength(defW);
             MerchantHeaderGrid.ColumnDefinitions[splitterCol].Width = hidden ? new GridLength(0) : new GridLength(4);
+        }
+        // Apply to Transactions DataGrid columns
+        if (s.TxnHiddenColumns.Count > 0)
+        {
+            foreach (var col in TxnGrid.Columns)
+            {
+                if (col.Header is null) continue;
+                var header = col.Header.ToString()!;
+                col.Visibility = s.TxnHiddenColumns.Contains(header)
+                    ? Visibility.Collapsed
+                    : Visibility.Visible;
+            }
         }
     }
 
@@ -17791,6 +18022,7 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
             AccountEmptyState.Visibility   = Visibility.Collapsed;
             AccountEntityCard.Visibility   = Visibility.Collapsed;
             AccountMerchantCard.Visibility = Visibility.Collapsed;
+            AccKpiPanel.Visibility         = Visibility.Collapsed;
 
             var environment = IsSandbox ? PayrixEnvironment.Sandbox : PayrixEnvironment.Production;
             var service = new PayrixService(apiKey, environment);
@@ -17840,6 +18072,7 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
                 return new Models.AccountMerchantRow
                 {
                     MerchantId       = m.Id,
+                    EntityId         = m.Entity,
                     IsPinned         = string.Equals(m.Id, PinnedMerchantId, StringComparison.OrdinalIgnoreCase),
                     DisplayName      = m.DisplayName,
                     StatusCode       = m.Status,
@@ -17874,7 +18107,41 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
                 : $"{merchants.Count} merchant accounts";
             AccountMerchantCard.Visibility = Visibility.Visible;
 
+            // KPI tiles
+            int kpiActive   = merchants.Count(m => m.Status == 1 || m.Status == 2);
+            int kpiInactive = merchants.Count(m => m.Status == 3);
+            int kpiKyc      = merchants.Count(m => m.Kyc?.Status == 1);
+            AccKpiTotal.Text   = merchants.Count.ToString();
+            AccKpiActive.Text  = kpiActive.ToString();
+            AccKpiInactive.Text = kpiInactive.ToString();
+            AccKpiKyc.Text     = kpiKyc.ToString();
+            AccKpiPanel.Visibility = Visibility.Visible;
+
             ApplyAccSort();
+
+            // Entity-name enrichment — deduplicated, in background
+            _ = Task.Run(async () =>
+            {
+                var snapshot = _allAccountRows.ToList();
+                var entityIds = snapshot
+                    .Where(r => !string.IsNullOrEmpty(r.EntityId))
+                    .Select(r => r.EntityId!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var nameMap = new System.Collections.Concurrent.ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                var tasks = entityIds.Select(async eid =>
+                {
+                    var name = await service.GetEntityNameAsync(eid).ConfigureAwait(false);
+                    if (name is not null) nameMap[eid] = name;
+                });
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    foreach (var r in snapshot)
+                        if (r.EntityId is not null && nameMap.TryGetValue(r.EntityId, out var n))
+                            r.EntityName = n;
+                });
+            });
 
             // Enrich Core DB link status — check ALL configured Core DBs and union results
             var accountAllConns = AllMainDbConnectionStrings();
@@ -17951,6 +18218,7 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
             "VolumeRaw"    => AccSortVolume,
             "Currency"     => AccSortCurrency,
             "CreatedRaw"   => AccSortCreated,
+            "EntityName"   => AccSortEntity,
             _              => null
         };
         if (header != null)
@@ -17964,6 +18232,7 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
                 "VolumeRaw"   => "VOL",
                 "Currency"    => "CURRENCY",
                 "CreatedRaw"  => "CREATED",
+                "EntityName"  => "ENTITY",
                 _             => column
             };
             header.Content = baseLabel + arrow;
@@ -17981,6 +18250,7 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
         AccSortVolume.Content   = "VOL";
         AccSortCurrency.Content = "CURRENCY";
         AccSortCreated.Content  = "CREATED";
+        AccSortEntity.Content   = "ENTITY";
     }
 
     private void AccSearch_Changed(object sender, System.Windows.Controls.TextChangedEventArgs e)
@@ -18016,6 +18286,9 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
                 ? rest.OrderBy(r => r.Currency, StringComparer.OrdinalIgnoreCase)
                 : rest.OrderByDescending(r => r.Currency, StringComparer.OrdinalIgnoreCase),
             "CreatedRaw"  => _accSortAscending ? rest.OrderBy(r => r.CreatedRaw)  : rest.OrderByDescending(r => r.CreatedRaw),
+            "EntityName"  => _accSortAscending
+                ? rest.OrderBy(r => r.EntityName, StringComparer.OrdinalIgnoreCase)
+                : rest.OrderByDescending(r => r.EntityName, StringComparer.OrdinalIgnoreCase),
             _             => rest   // no sort — natural order
         };
 
@@ -18045,6 +18318,7 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
         AccPageNumText.Text       = _accPage.ToString();
         AccPrevPageBtn.IsEnabled  = _accPage > 1;
         AccNextPageBtn.IsEnabled  = end < total;
+        if (AccCountBadge is not null) AccCountBadge.Text = total.ToString();
     }
 
     private void AccPageSizeBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -18070,6 +18344,59 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
         if (_accPage < maxPage) { _accPage++; RefreshAccPage(); }
     }
 
+    // ── Export ───────────────────────────────────────────────────────────────
+
+    private void AccExportCsv_Click(object sender, RoutedEventArgs e)
+    {
+        if (_allAccountRows.Count == 0) { WpfMessageBox.Show("No accounts loaded to export.", "Export", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+        var dlg = new Microsoft.Win32.SaveFileDialog { Filter = "CSV files (*.csv)|*.csv", FileName = "accounts.csv" };
+        if (dlg.ShowDialog(this) != true) return;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("MerchantId,DisplayName,Status,KYC,Currency,Created,EntityId,EntityName,LinkedToCore");
+        foreach (var r in _allAccountRows)
+        {
+            sb.AppendLine(string.Join(",",
+                CsvEscape(r.MerchantId), CsvEscape(r.DisplayName), CsvEscape(r.StatusLabel),
+                CsvEscape(r.KycLabel), CsvEscape(r.Currency), CsvEscape(r.CreatedRaw),
+                CsvEscape(r.EntityId ?? ""), CsvEscape(r.EntityName ?? ""),
+                r.LinkedToCore ? "Yes" : "No"));
+        }
+        System.IO.File.WriteAllText(dlg.FileName, sb.ToString(), System.Text.Encoding.UTF8);
+        SetStatus($"Exported {_allAccountRows.Count} accounts to {System.IO.Path.GetFileName(dlg.FileName)}.");
+    }
+
+    private void AccExportJson_Click(object sender, RoutedEventArgs e)
+    {
+        if (_allAccountRows.Count == 0) { WpfMessageBox.Show("No accounts loaded to export.", "Export", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+        var dlg = new Microsoft.Win32.SaveFileDialog { Filter = "JSON files (*.json)|*.json", FileName = "accounts.json" };
+        if (dlg.ShowDialog(this) != true) return;
+        var rows = _allAccountRows.Select(r => new
+        {
+            merchantId   = r.MerchantId,
+            displayName  = r.DisplayName,
+            status       = r.StatusLabel,
+            statusCode   = r.StatusCode,
+            kyc          = r.KycLabel,
+            kycCode      = r.KycCode,
+            currency     = r.Currency,
+            created      = r.CreatedRaw,
+            entityId     = r.EntityId,
+            entityName   = r.EntityName,
+            linkedToCore = r.LinkedToCore
+        });
+        var json = System.Text.Json.JsonSerializer.Serialize(rows, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        System.IO.File.WriteAllText(dlg.FileName, json, System.Text.Encoding.UTF8);
+        SetStatus($"Exported {_allAccountRows.Count} accounts to {System.IO.Path.GetFileName(dlg.FileName)}.");
+    }
+
+    private static string CsvEscape(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
+    }
+
     // ── Toggle Active / Inactive ──────────────────────────────────────────────
 
     private async void ToggleMerchantStatus_Click(object sender, RoutedEventArgs e)
@@ -18087,8 +18414,8 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
             return;
         }
 
-        // Toggle: Active/Boarded (2) → Inactive (3), anything else → Activate (send 2 to Payrix)
-        var newStatus   = row.StatusCode == 2 ? 3 : 2;
+        // Toggle: Active/Boarded (1 or 2) → Inactive (3), anything else → Activate (send 2 to Payrix)
+        var newStatus   = (row.StatusCode == 1 || row.StatusCode == 2) ? 3 : 2;
         var actionLabel = newStatus == 2 ? "Activate" : "Deactivate";
 
         // Only confirm for destructive Deactivate — Activate goes immediately
@@ -23829,3 +24156,4 @@ public class MemberDetailRow
     public string StatusColor { get; set; } = "#6B7280";
     public bool   HasGaps     { get; set; }
 }
+

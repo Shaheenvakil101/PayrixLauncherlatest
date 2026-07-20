@@ -71,15 +71,14 @@ public class AccountMerchantRow : INotifyPropertyChanged
             OnPC(nameof(ToggleBusy));
         }
     }
-    // Payrix status codes (sandbox + production):
-    //   0 = Created/Processing   1 = Submitted/Pending
-    //   2 = Active (Boarded)     3 = Inactive   4 = Suspended
-    public string StatusLabel     => StatusCode switch { 2 => "Active", 3 => "Inactive", 4 => "Suspended", 1 => "Submitted", 0 => "Created", _ => $"Status {StatusCode}" };
-    public string StatusColor     => StatusCode switch { 2 => "#22C55E", 1 => "#F59E0B", 0 => "#6366F1", 3 => "#9CA3AF", 4 => "#EF4444", _ => "#9CA3AF" };
-    public string StatusBg        => StatusCode switch { 2 => "#2622C55E", 1 => "#26F59E0B", 0 => "#266366F1", 3 => "#269CA3AF", 4 => "#26EF4444", _ => "#269CA3AF" };
+    // Payrix status codes: 0=Created, 1=Active, 2=Boarded/Live, 3=Inactive, 4=Suspended.
+    // Both 1 and 2 are live states that can process payments.
+    public string StatusLabel     => StatusCode switch { 1 or 2 => StatusCode == 1 ? "Active" : "Boarded", 3 => "Inactive", 4 => "Suspended", 0 => "Created", _ => $"Status {StatusCode}" };
+    public string StatusColor     => StatusCode switch { 1 or 2 => "#22C55E", 0 => "#6366F1", 3 => "#9CA3AF", 4 => "#EF4444", _ => "#9CA3AF" };
+    public string StatusBg        => StatusCode switch { 1 or 2 => "#2622C55E", 0 => "#266366F1", 3 => "#269CA3AF", 4 => "#26EF4444", _ => "#269CA3AF" };
 
     /// <summary>Label shown on the toggle button ("Deactivate" when Active/Boarded, "Activate" otherwise).</summary>
-    public string ToggleStatusLabel => StatusCode == 2 ? "Deactivate" : "Activate";
+    public string ToggleStatusLabel => (StatusCode == 1 || StatusCode == 2) ? "Deactivate" : "Activate";
 
     private bool _toggleBusy;
     public bool ToggleBusy
@@ -118,4 +117,13 @@ public class AccountMerchantRow : INotifyPropertyChanged
     public string Currency         { get; set; } = "";
     public string CreatedFormatted { get; set; } = "";
     public string CreatedRaw       { get; set; } = ""; // for sort
+
+    public string? EntityId { get; set; }
+
+    private string? _entityName;
+    public string? EntityName
+    {
+        get => _entityName;
+        set { _entityName = value; OnPC(); }
+    }
 }
