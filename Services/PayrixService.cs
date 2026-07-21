@@ -22,7 +22,7 @@ public class PayrixService
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        Converters = { new PayrixLauncher.Models.FlexibleStringConverter(), new PayrixLauncher.Models.FlexibleIntConverter() }
+        Converters = { new PayrixLauncher.Models.FlexibleStringConverter(), new PayrixLauncher.Models.FlexibleIntConverter(), new PayrixLauncher.Models.FlexibleDecimalConverter() }
     };
 
     public static string SandboxBaseUrl    => "https://test-api.payrix.com";
@@ -2403,18 +2403,37 @@ public class PayrixService
     public async Task<(List<Merchant> merchants, string rawJson, string? error)>
         GetMerchantsAsync(int limit = 0)  // limit=0 → fetch all
     {
+        // Fetch active merchants and inactive merchants in parallel, then merge
+        var (active,   activeJson,   activeErr)   = await FetchMerchantsByStatusAsync(null,  limit).ConfigureAwait(false);
+        var (inactive, inactiveJson, _)            = await FetchMerchantsByStatusAsync(3,     0).ConfigureAwait(false);
+
+        if (activeErr != null && active.Count == 0)
+            return ([], activeJson, activeErr);
+
+        // Merge: add inactive merchants that weren't already returned by the default fetch
+        var seenIds = new HashSet<string>(active.Select(m => m.Id), StringComparer.OrdinalIgnoreCase);
+        foreach (var m in inactive)
+            if (seenIds.Add(m.Id)) active.Add(m);
+
+        return (active, activeJson, activeErr);
+    }
+
+    private async Task<(List<Merchant> merchants, string rawJson, string? error)>
+        FetchMerchantsByStatusAsync(int? status, int limit)
+    {
         var lastJson = "{}";
         const int apiPageSize = 100;
         try
         {
-            var all        = new List<Merchant>();
-            int page       = 1;
-            int serverTotal = -1; // -1 = unknown until first response
+            var statusParam = status.HasValue ? $"search[status][eq]={status.Value}&" : "";
+            var all         = new List<Merchant>();
+            int page        = 1;
+            int serverTotal = -1;
 
             while (limit == 0 || all.Count < limit)
             {
                 var resp = await _client.GetAsync(
-                    $"/merchants?page[limit]={apiPageSize}&page[number]={page}").ConfigureAwait(false);
+                    $"/merchants?{statusParam}page[limit]={apiPageSize}&page[number]={page}").ConfigureAwait(false);
                 lastJson = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                 if (!resp.IsSuccessStatusCode)
@@ -2424,20 +2443,16 @@ public class PayrixService
                 var parsed = JsonSerializer.Deserialize<PayrixMerchantResponse>(lastJson, JsonOptions);
                 var data   = parsed?.Response?.Data ?? [];
 
-                // Only trust server total when it's a positive number
                 var t = parsed?.Response?.Total ?? 0;
                 if (t > 0 && serverTotal < 0) serverTotal = t;
 
                 if (data.Count == 0) break;
                 all.AddRange(data);
 
-                // Stop when server-reported total is reached
                 if (serverTotal > 0 && all.Count >= serverTotal) break;
-
                 page++;
             }
 
-            // Apply user-requested cap
             if (limit > 0 && all.Count > limit)
                 all = all.Take(limit).ToList();
 
@@ -2447,6 +2462,40 @@ public class PayrixService
         {
             return ([], lastJson, $"Merchant fetch error: {ex.Message}");
         }
+    }
+
+    /// <summary>Fetch available balance for a merchant via /accounts. Returns dollars as decimal.</summary>
+    public async Task<(decimal? balance, string? error)> GetMerchantBalanceAsync(string merchantId)
+    {
+        try
+        {
+            var resp = await _client.GetAsync(
+                $"/accounts?search[merchant][eq]={Uri.EscapeDataString(merchantId)}&page[limit]=5&page[number]=1")
+                .ConfigureAwait(false);
+            if (!resp.IsSuccessStatusCode)
+                return (null, $"HTTP {(int)resp.StatusCode}");
+            var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty("response", out var response)) return (null, null);
+            if (!response.TryGetProperty("data", out var data) || data.ValueKind != System.Text.Json.JsonValueKind.Array) return (null, null);
+            if (data.GetArrayLength() == 0) return (null, null);
+
+            string[] balanceFields = ["availableBalance", "balance", "available", "availBalance", "netBalance"];
+            for (int i = 0; i < data.GetArrayLength(); i++)
+            {
+                var entry = data[i];
+                foreach (var field in balanceFields)
+                {
+                    if (!entry.TryGetProperty(field, out var bal)) continue;
+                    if (bal.ValueKind == System.Text.Json.JsonValueKind.Number && bal.TryGetDecimal(out var dv)) return (dv, null);
+                    if (bal.ValueKind == System.Text.Json.JsonValueKind.String &&
+                        decimal.TryParse(bal.GetString(), System.Globalization.NumberStyles.Any,
+                            System.Globalization.CultureInfo.InvariantCulture, out var sv)) return (sv, null);
+                }
+            }
+            return (null, null);
+        }
+        catch (Exception ex) { return (null, ex.Message); }
     }
 
     /// <summary>Raw GET helper — returns the response body string.</summary>

@@ -2259,66 +2259,59 @@
                 </Border>
                 <Border BorderBrush="{DynamicResource CardBorder}" BorderThickness="0,1,0,0">
                 <StackPanel x:Name="EmailSectionContent" Visibility="Visible">
-                <!-- Row 3: Single email field with Search + Fetch Latest buttons -->
+                <!-- Row 3: Single email field with Search + Fetch Latest buttons (2-row layout) -->
                 <Border Background="{DynamicResource SearchCardBg}" CornerRadius="6" Padding="12,10" Margin="0,0,0,10"
                         BorderBrush="{DynamicResource SearchCardBorder}" BorderThickness="1">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="12"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="4"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="12"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="4"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
-                            <TextBlock Text="📧 " FontSize="13"/>
-                            <TextBlock Text="User Email:" FontWeight="SemiBold" FontSize="13"/>
+                    <StackPanel>
+                        <!-- Row A: label + email box -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <TextBlock Text="📧 " FontSize="13"/>
+                                <TextBlock Text="User Email:" FontWeight="SemiBold" FontSize="13"/>
+                            </StackPanel>
+                            <TextBox x:Name="UserEmailBox" Grid.Column="1" Height="34" Padding="10,0"
+                                     VerticalContentAlignment="Center" FontSize="12" BorderBrush="{DynamicResource InputBorder}"
+                                     BorderThickness="1"
+                                     ToolTip="Email address used for searching transactions and fetching the latest transaction IDs"
+                                     Text="Shaheen.Vakil@bqe.com"/>
+                        </Grid>
+                        <!-- Row B: Limit + Search & Load + Latest count (right-aligned) -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock Text="Limit:" FontSize="11" Foreground="{DynamicResource SubLabelFg}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBox x:Name="SearchLimitBox" Width="55" Height="32" Padding="8,0"
+                                     VerticalContentAlignment="Center" FontSize="12" BorderBrush="{DynamicResource InputBorder}"
+                                     BorderThickness="1" Text="20" ToolTip="Enter max number of transactions to fetch"
+                                     Margin="0,0,8,0"/>
+                            <Button x:Name="SearchEmailBtn" Content="🔍 Search &amp; Load" Height="32" Padding="12,0"
+                                    Margin="0,0,6,0" Click="SearchEmailBtn_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                        <Setter Property="Background" Value="#2563EB"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#1D4ED8"/>
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Background" Value="#BFDBFE"/>
+                                                <Setter Property="Foreground" Value="#2563EB"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <ComboBox x:Name="LatestCountBox" Width="55" Height="32"
+                                      VerticalContentAlignment="Center" FontSize="12" SelectedIndex="0">
+                                <ComboBoxItem Content="1"/>
+                                <ComboBoxItem Content="5"/>
+                                <ComboBoxItem Content="10"/>
+                                <ComboBoxItem Content="20"/>
+                            </ComboBox>
                         </StackPanel>
-
-                        <TextBox x:Name="UserEmailBox" Grid.Column="1" Height="34" Padding="10,0"
-                                 VerticalContentAlignment="Center" FontSize="12" BorderBrush="{DynamicResource InputBorder}"
-                                 BorderThickness="1"
-                                 ToolTip="Email address used for searching transactions and fetching the latest transaction IDs"
-                                 Text="Shaheen.Vakil@bqe.com"/>
-
-                        <!-- Search & Load -->
-                        <TextBlock Grid.Column="3" Text="Limit:" FontSize="11" Foreground="{DynamicResource SubLabelFg}" VerticalAlignment="Center"/>
-                        <TextBox x:Name="SearchLimitBox" Grid.Column="5" Width="70" Height="34" Padding="8,0"
-                                 VerticalContentAlignment="Center" FontSize="12" BorderBrush="{DynamicResource InputBorder}"
-                                 BorderThickness="1" Text="20" ToolTip="Enter max number of transactions to fetch"/>
-                        <Button x:Name="SearchEmailBtn" Grid.Column="7" Content="🔍 Search &amp; Load"
-                                Click="SearchEmailBtn_Click">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-                                    <Setter Property="Background" Value="#2563EB"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#1D4ED8"/>
-                                        </Trigger>
-                                        <Trigger Property="IsEnabled" Value="False">
-                                            <Setter Property="Background" Value="#BFDBFE"/>
-                                            <Setter Property="Foreground" Value="#2563EB"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-
-                        <!-- Fetch Latest IDs -->
-                        <ComboBox x:Name="LatestCountBox" Grid.Column="9" Width="60" Height="34"
-                                  VerticalContentAlignment="Center" FontSize="12" SelectedIndex="0">
-                            <ComboBoxItem Content="1"/>
-                            <ComboBoxItem Content="5"/>
-                            <ComboBoxItem Content="10"/>
-                            <ComboBoxItem Content="20"/>
-                        </ComboBox>
-                    </Grid>
+                    </StackPanel>
                 </Border>
                 <!-- Search mode row -->
                 <Border Background="{DynamicResource SearchCardBg}" CornerRadius="6" Padding="12,8" Margin="0,4,0,0"
@@ -7646,6 +7639,8 @@
                                             <ColumnDefinition Width="4"/>
                                             <ColumnDefinition Width="80"/>    <!-- core -->
                                             <ColumnDefinition Width="4"/>
+                                            <ColumnDefinition Width="100"/>   <!-- avail bal -->
+                                            <ColumnDefinition Width="4"/>
                                             <ColumnDefinition Width="102"/>   <!-- action -->
                                         </Grid.ColumnDefinitions>
                                         <!-- blank pin col -->
@@ -7693,7 +7688,13 @@
                                                       Background="Transparent" Cursor="SizeWE"
                                                       ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
                                                       DragDelta="MerchantSplitter_DragDelta"/>
-                                        <StackPanel Grid.Column="15" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
+                                        <TextBlock Grid.Column="15" Text="AVAIL. BAL" FontSize="10" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource SubText}" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                        <GridSplitter Grid.Column="16" Width="4" HorizontalAlignment="Stretch"
+                                                      Background="Transparent" Cursor="SizeWE"
+                                                      ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                                                      DragDelta="MerchantSplitter_DragDelta"/>
+                                        <StackPanel Grid.Column="17" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
                                             <TextBlock Text="ACTION" FontSize="10" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource SubText}" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                             <Button x:Name="MerchColChooserBtn" Content="⊞" Click="MerchColumnChooser_Click"
@@ -7714,7 +7715,8 @@
                                                         <CheckBox Content="Status"      IsChecked="True" Tag="7:90:8"   Click="MerchColCheck_Click" Margin="0,2"/>
                                                         <CheckBox Content="KYC"         IsChecked="True" Tag="9:80:10"  Click="MerchColCheck_Click" Margin="0,2"/>
                                                         <CheckBox Content="Created"     IsChecked="True" Tag="11:100:12" Click="MerchColCheck_Click" Margin="0,2"/>
-                                                        <CheckBox Content="Core"        IsChecked="True" Tag="13:80:14" Click="MerchColCheck_Click" Margin="0,2"/>
+                                                        <CheckBox Content="Core"        IsChecked="True" Tag="13:80:14"  Click="MerchColCheck_Click" Margin="0,2"/>
+                                                        <CheckBox Content="Avail. Bal"  IsChecked="True" Tag="15:100:16" Click="MerchColCheck_Click" Margin="0,2"/>
                                                     </StackPanel>
                                                 </Border>
                                             </Popup>
@@ -7780,6 +7782,8 @@
                                                                 <ColumnDefinition Width="100"/>
                                                                 <ColumnDefinition Width="4"/>    <!-- spacer -->
                                                                 <ColumnDefinition Width="80"/>   <!-- Core -->
+                                                                <ColumnDefinition Width="4"/>    <!-- spacer -->
+                                                                <ColumnDefinition Width="100"/>  <!-- Avail Bal -->
                                                                 <ColumnDefinition Width="4"/>    <!-- spacer -->
                                                                 <ColumnDefinition Width="102"/>
                                                             </Grid.ColumnDefinitions>
@@ -7905,8 +7909,24 @@
                                                                     </TextBlock.Style>
                                                                 </TextBlock>
                                                             </Border>
+                                                            <!-- Available Balance -->
+                                                            <TextBlock Grid.Column="15"
+                                                                       Text="{Binding AvailableBalanceDisplay}"
+                                                                       FontSize="11.5" FontWeight="SemiBold"
+                                                                       VerticalAlignment="Center" Margin="4,0,0,0">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource SubText}"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding HasBalance}" Value="True">
+                                                                                <Setter Property="Foreground" Value="#22C55E"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
                                                             <!-- Toggle Active/Inactive -->
-                                                            <Button Grid.Column="15"
+                                                            <Button Grid.Column="17"
                                                                     Content="{Binding ToggleStatusLabel}"
                                                                     IsEnabled="{Binding ToggleEnabled}"
                                                                     Tag="{Binding Id}"
@@ -13893,9 +13913,10 @@
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/><!-- Row 0: POST panel -->
-                            <RowDefinition Height="Auto"/><!-- Row 1: Transaction detail card -->
-                            <RowDefinition Height="Auto"/><!-- Row 2: Controls -->
-                            <RowDefinition Height="*"/>  <!-- Row 3: Results+Summary+Payload wrapper -->
+                            <RowDefinition Height="Auto"/><!-- Row 1: Configuration header -->
+                            <RowDefinition Height="Auto"/><!-- Row 2: Transaction detail card -->
+                            <RowDefinition Height="Auto"/><!-- Row 3: Controls -->
+                            <RowDefinition Height="*"/>  <!-- Row 4: Results+Summary+Payload wrapper -->
                         </Grid.RowDefinitions>
 
                         <!-- ── Unified Webhook POST panel ────────────────────── -->
@@ -14301,9 +14322,10 @@
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="52"/>
+                                                    <ColumnDefinition Width="64"/>
                                                     <ColumnDefinition Width="4"/>
                                                     <ColumnDefinition Width="380"/>
                                                     <ColumnDefinition Width="4"/>
@@ -14370,6 +14392,25 @@
                                                         <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource DarkBtnBgHover}"/></Trigger></ControlTemplate.Triggers>
                                                     </ControlTemplate></Button.Template>
                                                 </Button>
+                                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Production"
+                                                           FontSize="11" Foreground="{DynamicResource SubLabelFg}" VerticalAlignment="Center"/>
+                                                <TextBox x:Name="ProductionHostDbBox" Grid.Row="4" Grid.Column="2"
+                                                         Height="22" Padding="5,0" FontFamily="Consolas" FontSize="10"
+                                                         VerticalContentAlignment="Center" Margin="0,2,0,2"
+                                                         BorderBrush="{DynamicResource InputBorder}" BorderThickness="1"
+                                                         ToolTip="Production BQECorePaymentService DB"/>
+                                                <Button Grid.Row="4" Grid.Column="4" Content="⧉" Height="22" Width="22"
+                                                        Padding="0" FontSize="10" Cursor="Hand" VerticalAlignment="Center"
+                                                        BorderThickness="1" BorderBrush="{DynamicResource CopyBtnBorder}" Background="{DynamicResource CopyBtnBg}"
+                                                        ToolTip="Copy Production Payment Service DB connection string"
+                                                        Click="CopyProductionHostDbBtn_Click">
+                                                    <Button.Template><ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource DarkBtnBgHover}"/></Trigger></ControlTemplate.Triggers>
+                                                    </ControlTemplate></Button.Template>
+                                                </Button>
                                             </Grid>
                                         </Border>
 
@@ -14384,9 +14425,10 @@
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="52"/>
+                                                    <ColumnDefinition Width="64"/>
                                                     <ColumnDefinition Width="4"/>
                                                     <ColumnDefinition Width="380"/>
                                                     <ColumnDefinition Width="4"/>
@@ -14413,7 +14455,7 @@
                                                         BorderThickness="1" BorderBrush="{DynamicResource InfoStripBlueBorder}"
                                                         Background="{DynamicResource InfoStripBlueBtnBg}"
                                                         Foreground="{DynamicResource InfoStripBlueFg}"
-                                                        ToolTip="Fetch AccountID and CompanyID for this email from the Local main DB"
+                                                        ToolTip="Fetch AccountID and CompanyID for this email — tries active env first, then all configured environments"
                                                         Click="FetchIdsByEmailBtn_Click">
                                                     <Button.Template><ControlTemplate TargetType="Button">
                                                         <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" Padding="{TemplateBinding Padding}">
@@ -14479,6 +14521,25 @@
                                                         <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource InfoStripBlueBtnHover}"/></Trigger></ControlTemplate.Triggers>
                                                     </ControlTemplate></Button.Template>
                                                 </Button>
+                                                <TextBlock Grid.Row="5" Grid.Column="0" Text="Production"
+                                                           FontSize="11" Foreground="{DynamicResource SubLabelFg}" VerticalAlignment="Center"/>
+                                                <TextBox x:Name="ProductionMainDbBox" Grid.Row="5" Grid.Column="2"
+                                                         Height="22" Padding="5,0" FontFamily="Consolas" FontSize="10"
+                                                         VerticalContentAlignment="Center" Margin="0,2,0,2"
+                                                         BorderBrush="{DynamicResource InputBorder}" BorderThickness="1"
+                                                         ToolTip="Production BQECoreHost main DB"/>
+                                                <Button Grid.Row="5" Grid.Column="4" Content="⧉" Height="22" Width="22"
+                                                        Padding="0" FontSize="10" Cursor="Hand" VerticalAlignment="Center"
+                                                        BorderThickness="1" BorderBrush="{DynamicResource InfoStripBlueBorder}" Background="{DynamicResource CopyBtnBg}"
+                                                        ToolTip="Copy Production Main DB connection string"
+                                                        Click="CopyProductionMainDbBtn_Click">
+                                                    <Button.Template><ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource InfoStripBlueBtnHover}"/></Trigger></ControlTemplate.Triggers>
+                                                    </ControlTemplate></Button.Template>
+                                                </Button>
                                             </Grid>
                                         </Border>
 
@@ -14490,8 +14551,11 @@
                                 <StackPanel Grid.Row="5" Grid.ColumnSpan="21" Orientation="Horizontal"
                                             Margin="0,4,0,0" Visibility="Collapsed"
                                             x:Name="EntityInfoPanel">
-                                    <TextBlock Text="🏢" FontSize="13" VerticalAlignment="Center"
-                                               Margin="0,0,6,0"/>
+                                    <Border Background="{DynamicResource InfoStripGreenBtnBg}" BorderBrush="{DynamicResource InfoStripGreenBorder}"
+                                            BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
+                                        <TextBlock Text="PAYMENT SVC" FontSize="10" FontWeight="Bold"
+                                                   Foreground="{DynamicResource InfoStripGreenFg}" VerticalAlignment="Center"/>
+                                    </Border>
                                     <TextBlock Text="Account ID:" FontSize="12" FontWeight="SemiBold"
                                                Foreground="{DynamicResource LabelFg}" VerticalAlignment="Center"
                                                Margin="0,0,6,0"/>
@@ -14578,9 +14642,12 @@
                                 <StackPanel Grid.Row="4" Orientation="Horizontal"
                                             Margin="0,4,0,0" Visibility="Collapsed"
                                             x:Name="HostDbInfoPanel">
-                                    <TextBlock Text="🗄" FontSize="13" VerticalAlignment="Center"
-                                               Margin="0,0,6,0"/>
-                                    <TextBlock Text="Core DB  ›  Account ID:" FontSize="12" FontWeight="SemiBold"
+                                    <Border Background="{DynamicResource InfoStripBlueBtnBg}" BorderBrush="{DynamicResource InfoStripBlueBorder}"
+                                            BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
+                                        <TextBlock Text="CORE DB" FontSize="10" FontWeight="Bold"
+                                                   Foreground="{DynamicResource InfoStripBlueFg}" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="Account ID:" FontSize="12" FontWeight="SemiBold"
                                                Foreground="{DynamicResource LabelFg}" VerticalAlignment="Center"
                                                Margin="0,0,6,0"/>
                                     <Border Background="{DynamicResource InfoBoxBg}" BorderBrush="{DynamicResource InfoStripBlueBorder}"
@@ -14666,8 +14733,58 @@
                         </Border>
                         </ScrollViewer>
 
+                        <!-- ── Configuration header (Row 1) — outside ScrollViewer so star-sizing works ── -->
+                        <Border Grid.Row="1" Margin="0,0,0,4"
+                                Background="{DynamicResource WebhookConfigBg}" BorderBrush="{DynamicResource WebhookConfigBorder}"
+                                BorderThickness="1" CornerRadius="6" Padding="10,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="140"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="⚙ Configuration"
+                                           FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource WebhookConfigFg}" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="Endpoint:" FontSize="11"
+                                           Foreground="{DynamicResource SubLabelFg}" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="WebhookEnvBox" Grid.Column="4" Height="26"
+                                          VerticalContentAlignment="Center" FontSize="12"
+                                          SelectionChanged="WebhookEnvBox_SelectionChanged" SelectedIndex="0">
+                                    <ComboBoxItem Content="Local"/>
+                                    <ComboBoxItem Content="Staging"/>
+                                    <ComboBoxItem Content="Sprint"/>
+                                    <ComboBoxItem Content="Production"/>
+                                    <ComboBoxItem Content="Custom"/>
+                                </ComboBox>
+                                <TextBlock Grid.Column="6" Text="URL:" FontSize="11"
+                                           Foreground="{DynamicResource SubLabelFg}" VerticalAlignment="Center"/>
+                                <TextBox x:Name="WebhookUrlBox" Grid.Column="8" Height="26" Padding="7,0"
+                                         VerticalContentAlignment="Center" FontSize="11" FontFamily="Consolas"
+                                         BorderBrush="{DynamicResource InputBorder}" BorderThickness="1"/>
+                                <Border x:Name="WebhookConfigToggleBorder2" Grid.Column="10"
+                                        Cursor="Hand" CornerRadius="4" Padding="8,3"
+                                        Background="Transparent"
+                                        BorderBrush="{DynamicResource WebhookConfigBorder}" BorderThickness="1"
+                                        MouseLeftButtonUp="WebhookConfigToggle_Click"
+                                        ToolTip="Show / hide date filter, entity custom field and DB connection strings">
+                                    <TextBlock x:Name="WebhookConfigToggleText2"
+                                               Text="Config ▼" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource WebhookConfigFg}"/>
+                                </Border>
+                            </Grid>
+                        </Border>
+
                         <!-- ── Transaction Detail Card (compact single row) ──── -->
-                        <Border x:Name="TxnDetailCard" Grid.Row="1"
+                        <Border x:Name="TxnDetailCard" Grid.Row="2"
                                 Visibility="Collapsed"
                                 Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource CardBorder}"
                                 BorderThickness="1" CornerRadius="8" Margin="0,0,0,8" Padding="0">
@@ -14810,40 +14927,15 @@
                         </Border>
 
                         <!-- Controls row -->
-                        <Grid Grid.Row="2" Margin="0,0,0,8">
+                        <Grid Grid.Row="3" Margin="0,4,0,8">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="180"/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="8"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="8"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Column="0" Text="Endpoint:" FontWeight="SemiBold"
-                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="WebhookEnvBox" Grid.Column="1" Height="30"
-                                      VerticalContentAlignment="Center" FontSize="12"
-                                      SelectionChanged="WebhookEnvBox_SelectionChanged" SelectedIndex="0">
-                                <ComboBoxItem Content="Local"/>
-                                <ComboBoxItem Content="Staging"/>
-                                <ComboBoxItem Content="Sprint"/>
-                                <ComboBoxItem Content="Production"/>
-                                <ComboBoxItem Content="Custom"/>
-                            </ComboBox>
-
-                            <TextBlock Grid.Column="3" Text="URL:" FontSize="11" Foreground="{DynamicResource SubLabelFg}"
-                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
-                            <TextBox x:Name="WebhookUrlBox" Grid.Column="4" Height="30" Padding="8,0"
-                                     VerticalContentAlignment="Center" FontSize="11" FontFamily="Consolas"
-                                     BorderBrush="{DynamicResource InputBorder}" BorderThickness="1"/>
-
-                            <Button x:Name="RunAllTestsBtn" Grid.Column="6"
+                            <Button x:Name="RunAllTestsBtn" Grid.Column="1"
                                     Content="▶  Run All Tests"
                                     Height="30" Padding="14,0" FontSize="12" FontWeight="SemiBold"
                                     Cursor="Hand" BorderThickness="0"
@@ -14867,7 +14959,7 @@
                                     </ControlTemplate>
                                 </Button.Template>
                             </Button>
-                            <Button x:Name="ResetTestsBtn" Grid.Column="8"
+                            <Button x:Name="ResetTestsBtn" Grid.Column="3"
                                     Content="↺  Reset"
                                     Click="ResetTestsBtn_Click"
                                     ToolTip="Reset all test results to their initial state">
@@ -14885,30 +14977,77 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
-
-                            <!-- Config toggle — lives here so it is NEVER pushed off screen -->
-                            <Border x:Name="WebhookConfigToggleBorder2" Grid.Column="10"
-                                    Cursor="Hand" CornerRadius="6" Padding="10,6"
-                                    Background="{DynamicResource WebhookConfigBg}" BorderBrush="{DynamicResource WebhookConfigBorder}" BorderThickness="1"
-                                    MouseLeftButtonUp="WebhookConfigToggle_Click"
-                                    ToolTip="Show / hide date filter, entity custom field and DB connection strings">
-                                <TextBlock x:Name="WebhookConfigToggleText2"
-                                           Text="⚙ Config ▼" FontSize="11" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource WebhookConfigFg}"/>
-                            </Border>
                         </Grid>
 
                         <!-- ── Results + Summary + Payload wrapper ── -->
-                        <Grid Grid.Row="3">
+                        <Grid Grid.Row="4">
                             <Grid.RowDefinitions>
-                                <RowDefinition x:Name="TestListRow" Height="160" MinHeight="0"/><!-- Row 0: test list (fixed default, collapsible) -->
-                                <RowDefinition Height="Auto"/>   <!-- Row 1: summary bar -->
-                                <RowDefinition Height="5"/>      <!-- Row 2: drag splitter -->
-                                <RowDefinition Height="*" MinHeight="120"/><!-- Row 3: JSON payload (fills rest) -->
+                                <RowDefinition Height="Auto"/>   <!-- Row 0: Test Cases header -->
+                                <RowDefinition x:Name="TestListRow" Height="160" MinHeight="0"/><!-- Row 1: test list (fixed default, collapsible) -->
+                                <RowDefinition Height="Auto"/>   <!-- Row 2: summary bar -->
+                                <RowDefinition Height="5"/>      <!-- Row 3: drag splitter -->
+                                <RowDefinition Height="*" MinHeight="120"/><!-- Row 4: JSON payload (fills rest) -->
                             </Grid.RowDefinitions>
 
+                        <!-- Test Cases header -->
+                        <Grid Grid.Row="0" Margin="0,0,0,5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="6"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Test Cases" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource LabelFg}" VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource SummaryBarBg}" BorderBrush="{DynamicResource CardBorder}"
+                                        BorderThickness="1" CornerRadius="10" Padding="7,1" Margin="8,0,0,0">
+                                    <TextBlock x:Name="TestCaseCountText" FontSize="11"
+                                               Foreground="{DynamicResource SubLabelFg}" VerticalAlignment="Center"
+                                               Text="0 tests"/>
+                                </Border>
+                            </StackPanel>
+                            <Button Grid.Column="2" x:Name="ExportWebhookJsonBtn"
+                                    Content="⬇ Export JSON" Height="26" Padding="10,0" FontSize="11"
+                                    Cursor="Hand" BorderThickness="1" BorderBrush="{DynamicResource CardBorder}"
+                                    Background="Transparent" Foreground="{DynamicResource LabelFg}"
+                                    Click="ExportWebhookJsonBtn_Click"
+                                    ToolTip="Export test results as JSON">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource DarkBtnBgHover}"/></Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                            <Button Grid.Column="4" x:Name="ExportWebhookCsvBtn"
+                                    Content="⬇ Export CSV" Height="26" Padding="10,0" FontSize="11"
+                                    Cursor="Hand" BorderThickness="1" BorderBrush="{DynamicResource CardBorder}"
+                                    Background="Transparent" Foreground="{DynamicResource LabelFg}"
+                                    Click="ExportWebhookCsvBtn_Click"
+                                    ToolTip="Export test results as CSV">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5" Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="{DynamicResource DarkBtnBgHover}"/></Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+
                         <!-- Results grid -->
-                        <DataGrid x:Name="TestResultsGrid" Grid.Row="0"
+                        <DataGrid x:Name="TestResultsGrid" Grid.Row="1"
                                   AutoGenerateColumns="False" IsReadOnly="True"
                                   CanUserResizeColumns="True" GridLinesVisibility="Horizontal"
                                   AlternatingRowBackground="{DynamicResource GridAltRowBg}" RowBackground="{DynamicResource GridRowBg}"
@@ -15100,7 +15239,7 @@
                         </DataGrid>
 
                         <!-- Summary bar + collapse/expand toggle -->
-                        <Border Grid.Row="1" Background="{DynamicResource SummaryBarBg}" BorderBrush="{DynamicResource SummaryBarBorder}"
+                        <Border Grid.Row="2" Background="{DynamicResource SummaryBarBg}" BorderBrush="{DynamicResource SummaryBarBorder}"
                                 BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="0,5,0,0">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -15164,13 +15303,13 @@
                         </Border>
 
                         <!-- Drag handle between test list and JSON editor -->
-                        <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"
+                        <GridSplitter Grid.Row="3" Height="5" HorizontalAlignment="Stretch"
                                       Background="{DynamicResource CardBorder2}" Cursor="SizeNS"
                                       ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                                       ToolTip="Drag to resize test list / JSON editor"/>
 
                         <!-- Payload panel (editable + toolbar) -->
-                        <Border Grid.Row="3" BorderBrush="{DynamicResource CardBorder2}" BorderThickness="1" CornerRadius="6" Margin="0,2,0,0">
+                        <Border Grid.Row="4" BorderBrush="{DynamicResource CardBorder2}" BorderThickness="1" CornerRadius="6" Margin="0,2,0,0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>  <!-- Row 0: toolbar -->

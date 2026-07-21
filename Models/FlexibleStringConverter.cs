@@ -83,3 +83,25 @@ public class FlexibleIntConverter : JsonConverter<int?>
         else writer.WriteNumberValue(value.Value);
     }
 }
+
+public class FlexibleDecimalConverter : System.Text.Json.Serialization.JsonConverter<decimal?>
+{
+    public override decimal? Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case System.Text.Json.JsonTokenType.Null:   return null;
+            case System.Text.Json.JsonTokenType.Number: return reader.TryGetDecimal(out var d) ? d : null;
+            case System.Text.Json.JsonTokenType.String:
+                var s = reader.GetString();
+                return decimal.TryParse(s, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var pd) ? pd : null;
+            default: return null;
+        }
+    }
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, decimal? value, System.Text.Json.JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteNumberValue(value.Value);
+    }
+}

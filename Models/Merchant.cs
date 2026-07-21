@@ -172,6 +172,26 @@ public class Merchant : INotifyPropertyChanged
     }
     public string MemberCountDisplay => _memberCount.HasValue ? _memberCount.Value.ToString() : "…";
 
+    [JsonPropertyName("availableBalance")]
+    [JsonConverter(typeof(FlexibleDecimalConverter))]
+    public decimal? AvailableBalanceJson
+    {
+        get => _availableBalance;
+        set => AvailableBalance = value;
+    }
+
+    private decimal? _availableBalance;
+    [JsonIgnore]
+    public decimal? AvailableBalance
+    {
+        get => _availableBalance;
+        set { _availableBalance = value; OnPC(); OnPC(nameof(AvailableBalanceDisplay)); OnPC(nameof(HasBalance)); }
+    }
+    public string AvailableBalanceDisplay => _availableBalance.HasValue
+        ? $"${_availableBalance.Value:N2}"
+        : "—";
+    public bool HasBalance => _availableBalance.HasValue;
+
     private bool _isMarked;
     public bool IsMarked
     {

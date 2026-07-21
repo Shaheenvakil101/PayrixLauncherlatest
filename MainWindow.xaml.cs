@@ -965,15 +965,19 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (!string.IsNullOrEmpty(s.StagingHostDbConnectionString))
             StagingHostDbBox.Text  = s.StagingHostDbConnectionString;
         if (!string.IsNullOrEmpty(s.SprintHostDbConnectionString))
-            SprintHostDbBox.Text   = s.SprintHostDbConnectionString;
+            SprintHostDbBox.Text      = s.SprintHostDbConnectionString;
+        if (!string.IsNullOrEmpty(s.ProductionHostDbConnectionString))
+            ProductionHostDbBox.Text  = s.ProductionHostDbConnectionString;
         if (!string.IsNullOrEmpty(s.CoreAccountEmail))
             CoreAccountEmailBox.Text = s.CoreAccountEmail;
         if (!string.IsNullOrEmpty(s.LocalMainDbConnectionString))
-            LocalMainDbBox.Text    = s.LocalMainDbConnectionString;
+            LocalMainDbBox.Text       = s.LocalMainDbConnectionString;
         if (!string.IsNullOrEmpty(s.StagingMainDbConnectionString))
-            StagingMainDbBox.Text  = s.StagingMainDbConnectionString;
+            StagingMainDbBox.Text     = s.StagingMainDbConnectionString;
         if (!string.IsNullOrEmpty(s.SprintMainDbConnectionString))
-            SprintMainDbBox.Text   = s.SprintMainDbConnectionString;
+            SprintMainDbBox.Text      = s.SprintMainDbConnectionString;
+        if (!string.IsNullOrEmpty(s.ProductionMainDbConnectionString))
+            ProductionMainDbBox.Text  = s.ProductionMainDbConnectionString;
 
         // Fiddler / proxy — Fiddler tab is the single source of truth
         // Non-dev machines always run with proxy off (Fiddler tab is hidden and
@@ -1046,13 +1050,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             DisbursementLimit = DisbLimitBox.Text.Trim(),
             WebhookEnvIndex  = WebhookEnvBox.SelectedIndex,
             WebhookUrl                     = WebhookUrlBox.Text.Trim(),
-            LocalHostDbConnectionString    = LocalHostDbBox.Text.Trim(),
-            StagingHostDbConnectionString  = StagingHostDbBox.Text.Trim(),
-            SprintHostDbConnectionString   = SprintHostDbBox.Text.Trim(),
-            CoreAccountEmail               = CoreAccountEmailBox.Text.Trim(),
-            LocalMainDbConnectionString    = LocalMainDbBox.Text.Trim(),
-            StagingMainDbConnectionString  = StagingMainDbBox.Text.Trim(),
-            SprintMainDbConnectionString   = SprintMainDbBox.Text.Trim(),
+            LocalHostDbConnectionString      = LocalHostDbBox.Text.Trim(),
+            StagingHostDbConnectionString    = StagingHostDbBox.Text.Trim(),
+            SprintHostDbConnectionString     = SprintHostDbBox.Text.Trim(),
+            ProductionHostDbConnectionString = ProductionHostDbBox.Text.Trim(),
+            CoreAccountEmail                 = CoreAccountEmailBox.Text.Trim(),
+            LocalMainDbConnectionString      = LocalMainDbBox.Text.Trim(),
+            StagingMainDbConnectionString    = StagingMainDbBox.Text.Trim(),
+            SprintMainDbConnectionString     = SprintMainDbBox.Text.Trim(),
+            ProductionMainDbConnectionString = ProductionMainDbBox.Text.Trim(),
             EntityCustomField = EntityCustomBox.Text.Trim(),
             AchTxnId         = _perTypeTxnId.GetValueOrDefault(0, AchTxnIdBox.Text.Trim()),
             AchAmount        = _perTypeAmount.GetValueOrDefault(0, AchAmountBox.Text.Trim()),
@@ -4573,6 +4579,7 @@ ORDER BY MAX(s.ExpiresOn) DESC";
             _testCases.Add(tc);
 
         TestResultsGrid.ItemsSource = _testCases;
+        TestCaseCountText.Text = $"{_testCases.Count} tests";
         // Only set default URL if none was previously saved (LoadSettings may have already set it)
         if (string.IsNullOrEmpty(WebhookUrlBox.Text))
             WebhookUrlBox.Text = WebhookTestService.LocalEndpoint;
@@ -4829,6 +4836,40 @@ ORDER BY MAX(s.ExpiresOn) DESC";
         WebhookTestProgress.Text = "";
         ClearWebhookErrorBtn.Visibility = Visibility.Collapsed;
         ClearPayload();
+    }
+
+    private void ExportWebhookJsonBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export Test Results as JSON",
+            Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+            FileName = $"webhook-tests-{DateTime.Now:yyyyMMdd-HHmm}.json"
+        };
+        if (dlg.ShowDialog() != true) return;
+        var json = System.Text.Json.JsonSerializer.Serialize(_testCases.Select(tc => new
+        {
+            tc.Name, tc.Tag, Status = tc.Status.ToString(), tc.HttpCode, tc.DurationMs, tc.Detail
+        }), new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        System.IO.File.WriteAllText(dlg.FileName, json);
+        SetStatus($"Exported {_testCases.Count} results → {System.IO.Path.GetFileName(dlg.FileName)}");
+    }
+
+    private void ExportWebhookCsvBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "Export Test Results as CSV",
+            Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+            FileName = $"webhook-tests-{DateTime.Now:yyyyMMdd-HHmm}.csv"
+        };
+        if (dlg.ShowDialog() != true) return;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Name,Tag,Status,HttpCode,DurationMs,Detail");
+        foreach (var tc in _testCases)
+            sb.AppendLine($"\"{tc.Name}\",\"{tc.Tag}\",\"{tc.Status}\",{tc.HttpCode?.ToString() ?? ""},{ tc.DurationMs},\"{tc.Detail?.Replace("\"", "\"\"")}\"");
+        System.IO.File.WriteAllText(dlg.FileName, sb.ToString());
+        SetStatus($"Exported {_testCases.Count} results → {System.IO.Path.GetFileName(dlg.FileName)}");
     }
 
     private void TestResultsGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -5233,7 +5274,8 @@ ORDER BY MAX(s.ExpiresOn) DESC";
         0 => LocalHostDbBox.Text.Trim(),
         1 => StagingHostDbBox.Text.Trim(),
         2 => SprintHostDbBox.Text.Trim(),
-        _ => SprintHostDbBox.Text.Trim()
+        3 => ProductionHostDbBox.Text.Trim(),
+        _ => ProductionHostDbBox.Text.Trim()
     };
 
     /// <summary>Returns the active main host DB connection string based on the selected webhook environment.</summary>
@@ -5242,7 +5284,8 @@ ORDER BY MAX(s.ExpiresOn) DESC";
         0 => LocalMainDbBox.Text.Trim(),
         1 => StagingMainDbBox.Text.Trim(),
         2 => SprintMainDbBox.Text.Trim(),
-        _ => SprintMainDbBox.Text.Trim()
+        3 => ProductionMainDbBox.Text.Trim(),
+        _ => ProductionMainDbBox.Text.Trim()
     };
 
     /// <summary>All non-empty Core DB connection strings across every configured environment.</summary>
@@ -5250,7 +5293,8 @@ ORDER BY MAX(s.ExpiresOn) DESC";
         new[] {
             LocalMainDbBox.Text.Trim(),
             StagingMainDbBox.Text.Trim(),
-            SprintMainDbBox.Text.Trim()
+            SprintMainDbBox.Text.Trim(),
+            ProductionMainDbBox.Text.Trim()
         }.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().ToList();
 
     /// <summary>Parses Account_ID and Company_ID embedded in a BQE CORE transaction description.</summary>
@@ -5424,23 +5468,54 @@ ORDER BY MAX(s.ExpiresOn) DESC";
 
     private async void FetchIdsByEmailBtn_Click(object sender, RoutedEventArgs e)
     {
-        var email   = CoreAccountEmailBox.Text.Trim();
-        var connStr = LocalMainDbBox.Text.Trim();
-
+        var email = CoreAccountEmailBox.Text.Trim();
         if (string.IsNullOrEmpty(email))
         {
             SetStatus("Enter an email address first.");
             return;
         }
-        if (string.IsNullOrEmpty(connStr))
+
+        // Build candidate list: active env first, then all configured envs (deduplicated)
+        var activeLabel = WebhookEnvBox.SelectedIndex switch { 0 => "Local", 1 => "Staging", 2 => "Sprint", 3 => "Production", _ => "Production" };
+        var candidates = new[]
         {
-            SetStatus("Local Main DB connection string is empty. Use ⚡ Auto-detect or enter it manually.");
+            (activeLabel,  ActiveMainDbConnectionString()),
+            ("Local",      LocalMainDbBox.Text.Trim()),
+            ("Staging",    StagingMainDbBox.Text.Trim()),
+            ("Sprint",     SprintMainDbBox.Text.Trim()),
+            ("Production", ProductionMainDbBox.Text.Trim()),
+        }
+        .DistinctBy(c => c.Item1)
+        .Where(c => !string.IsNullOrWhiteSpace(c.Item2))
+        .ToList();
+
+        if (candidates.Count == 0)
+        {
+            SetStatus("No Main Host DB connection strings configured. Go to Settings.");
             return;
         }
 
         FetchIdsByEmailBtn.IsEnabled = false;
         SetStatus($"Looking up AccountID + CompanyID for {email}…");
-        await FetchAndShowIdsByEmailAsync(connStr, email);
+
+        var errors = new System.Collections.Generic.List<string>();
+        foreach (var (envName, connStr) in candidates)
+        {
+            try
+            {
+                var (accountId, companyId, error) = await HostDbService.GetAccountAndCompanyByEmailAsync(connStr, email);
+                if (error is not null) { errors.Add($"{envName}: {error}"); continue; }
+                ShowHostDbIds(companyId ?? "—", accountId ?? "—", $"📧 From Account.Email ({email}) [{envName}]");
+                HostDbInfoPanel.Visibility = Visibility.Visible;
+                SetStatus($"Found → AccountID: {accountId ?? "—"}  |  CompanyID: {companyId ?? "—"}  [{envName}]");
+                FetchIdsByEmailBtn.IsEnabled = true;
+                return;
+            }
+            catch (Exception ex) { errors.Add($"{envName}: {ex.Message.Split('\n')[0]}"); }
+        }
+
+        ShowHostDbIds("ERR", string.Join(" | ", errors), "⚠ lookup by email failed on all environments");
+        SetStatus($"Lookup failed: {string.Join(" | ", errors)}");
         FetchIdsByEmailBtn.IsEnabled = true;
     }
 
@@ -5609,12 +5684,14 @@ ORDER BY MAX(s.ExpiresOn) DESC";
     }
 
     // ── Connection string copy buttons ───────────────────────────────────────
-    private void CopyLocalHostDbBtn_Click(object sender, RoutedEventArgs e)   => CopyConnStr(LocalHostDbBox.Text,    "Local Payment Service DB");
-    private void CopyStagingHostDbBtn_Click(object sender, RoutedEventArgs e) => CopyConnStr(StagingHostDbBox.Text,  "Staging Payment Service DB");
-    private void CopySprintHostDbBtn_Click(object sender, RoutedEventArgs e)  => CopyConnStr(SprintHostDbBox.Text,   "Sprint Payment Service DB");
-    private void CopyLocalMainDbBtn_Click(object sender, RoutedEventArgs e)   => CopyConnStr(LocalMainDbBox.Text,    "Local Main DB");
-    private void CopyStagingMainDbBtn_Click(object sender, RoutedEventArgs e) => CopyConnStr(StagingMainDbBox.Text,  "Staging Main DB");
-    private void CopySprintMainDbBtn_Click(object sender, RoutedEventArgs e)  => CopyConnStr(SprintMainDbBox.Text,   "Sprint Main DB");
+    private void CopyLocalHostDbBtn_Click(object sender, RoutedEventArgs e)      => CopyConnStr(LocalHostDbBox.Text,      "Local Payment Service DB");
+    private void CopyStagingHostDbBtn_Click(object sender, RoutedEventArgs e)   => CopyConnStr(StagingHostDbBox.Text,    "Staging Payment Service DB");
+    private void CopySprintHostDbBtn_Click(object sender, RoutedEventArgs e)    => CopyConnStr(SprintHostDbBox.Text,     "Sprint Payment Service DB");
+    private void CopyProductionHostDbBtn_Click(object sender, RoutedEventArgs e)=> CopyConnStr(ProductionHostDbBox.Text, "Production Payment Service DB");
+    private void CopyLocalMainDbBtn_Click(object sender, RoutedEventArgs e)     => CopyConnStr(LocalMainDbBox.Text,      "Local Main DB");
+    private void CopyStagingMainDbBtn_Click(object sender, RoutedEventArgs e)   => CopyConnStr(StagingMainDbBox.Text,    "Staging Main DB");
+    private void CopySprintMainDbBtn_Click(object sender, RoutedEventArgs e)    => CopyConnStr(SprintMainDbBox.Text,     "Sprint Main DB");
+    private void CopyProductionMainDbBtn_Click(object sender, RoutedEventArgs e)=> CopyConnStr(ProductionMainDbBox.Text, "Production Main DB");
 
     private void CopyConnStr(string value, string label)
     {
@@ -15018,6 +15095,23 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
                 await Task.WhenAll(tasks).ConfigureAwait(false);
             });
 
+            // Available balance enrichment — fetched concurrently per merchant
+            var balSnapshot = merchantSnapshot.Where(m => !m.AvailableBalance.HasValue).ToList();
+            if (balSnapshot.Count > 0)
+            {
+                _ = Task.Run(async () =>
+                {
+                    var balTasks = balSnapshot.Select(async m =>
+                    {
+                        var (bal, _) = await service.GetMerchantBalanceAsync(m.Id).ConfigureAwait(false);
+                        if (bal.HasValue)
+                            await Dispatcher.InvokeAsync(() => m.AvailableBalance = bal);
+                    });
+                    await Task.WhenAll(balTasks).ConfigureAwait(false);
+                });
+            }
+
+
             _mSortColumn = null;
             ResetMSortArrows();
             ApplyMerchantFilter(MerchantSearchBox.Text);
@@ -15955,10 +16049,13 @@ body{{background:{bg};color:{fg};font-family:'Cascadia Code','Consolas','Courier
         if (_selectedMerchant == null) return;
         var m = _selectedMerchant;
 
+        var balanceWarning = m.AvailableBalance > 0
+            ? $"\n\n⚠ Available balance: {m.AvailableBalanceDisplay}. Ensure funds are settled first."
+            : "";
         bool confirm = IosAlertDialog.IsDark = _isDarkMode;
         confirm = IosAlertDialog.Show(
             title:       "Delete Merchant",
-            message:     $"This will permanently delete {m.ShortId} from Payrix and remove its Core DB link.\n\nThis cannot be undone.",
+            message:     $"This will permanently delete {m.ShortId} from Payrix and remove its Core DB link.\n\nThis cannot be undone.{balanceWarning}",
             actionLabel: "Delete",
             destructive: true,
             owner:       this);
