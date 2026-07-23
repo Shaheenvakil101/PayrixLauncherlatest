@@ -106,6 +106,10 @@ public class AppSettings
     public double WindowHeight         { get; set; } = 960;
     public double WindowLeft           { get; set; } = double.NaN;
     public double WindowTop            { get; set; } = double.NaN;
+
+    // Path to PaymentServiceManager .cs for "Update Host Code" feature
+    public string PaymentServiceManagerPath { get; set; } =
+        @"C:\Projects\Core\BQECoreHost\Applications\BQECoreHostBusinessLogic\PaymentServiceManager .cs";
 }
 
 /// <summary>Per-environment BQE Core credentials stored independently per Quick button.</summary>

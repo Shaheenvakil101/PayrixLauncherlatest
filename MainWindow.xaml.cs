@@ -1122,37 +1122,65 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         @"C:\Projects\Core\BQECoreHost\Applications\BQECoreHostBusinessLogic\PaymentServiceManager .cs";
 
     /// <summary>
-    /// Patches line 2359 of PaymentServiceManager .cs so the hardcoded custom override
-    /// matches whatever EntityCustom is set to in this app.
+    /// Patches the hardcoded custom overrides in PaymentServiceManager .cs so both
+    /// entity.Custom (OnDisbursementProcessed) and custom (OnChargeReimbursement) use
+    /// the provided AccountID,CompanyID value.
     /// </summary>
-    private static void PatchPaymentServiceManagerCustom(string custom)
+    private static int PatchPaymentServiceManagerCustom(string custom)
     {
-        if (string.IsNullOrWhiteSpace(custom)) return;
-        if (!System.IO.File.Exists(PaymentServiceManagerPath)) return;
+        if (string.IsNullOrWhiteSpace(custom)) return 0;
+        if (!System.IO.File.Exists(PaymentServiceManagerPath)) return 0;
 
-        var lines = System.IO.File.ReadAllLines(PaymentServiceManagerPath);
+        var content = System.IO.File.ReadAllText(PaymentServiceManagerPath);
+        int count = 0;
 
-        // Search for the launcher-fallback line dynamically — matches "custom = "GUID,GUID";" lines.
-        // Always takes the LAST match, which is the OnChargeReimbursement fallback slot.
-        var uuidPair = new System.Text.RegularExpressions.Regex(
-            @"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12},[0-9a-fA-F]{8}");
-        int targetIndex = -1;
-        for (int i = 0; i < lines.Length; i++)
+        var rx = new System.Text.RegularExpressions.Regex(
+            @"(?m)^( +)(entity\.Custom = )""[A-Fa-f0-9\-]+,[A-Fa-f0-9\-]+"";");
+        content = rx.Replace(content, m =>
         {
-            var trimmed = lines[i].TrimStart();
-            if ((trimmed.StartsWith("custom =", StringComparison.Ordinal) ||
-                 trimmed.StartsWith("//custom =", StringComparison.Ordinal)) &&
-                uuidPair.IsMatch(trimmed))
-                targetIndex = i;
+            count++;
+            return $"{m.Groups[1].Value}{m.Groups[2].Value}\"{custom}\";";
+        });
+
+        var rx2 = new System.Text.RegularExpressions.Regex(
+            @"(?m)^( +)(custom = )""[A-Fa-f0-9\-]+,[A-Fa-f0-9\-]+"";");
+        content = rx2.Replace(content, m =>
+        {
+            count++;
+            return $"{m.Groups[1].Value}{m.Groups[2].Value}\"{custom}\";";
+        });
+
+        if (count > 0)
+            System.IO.File.WriteAllText(PaymentServiceManagerPath, content);
+        return count;
+    }
+
+    private void UpdateHostCodeBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var custom = EntityCustomBox.Text.Trim();
+        if (string.IsNullOrEmpty(custom))
+        {
+            AchPostStatus.Text = "❌ Entity Custom field is empty — set AccountID,CompanyID first.";
+            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(220, 38, 38));
+            return;
         }
-        if (targetIndex < 0) return;
-
-        var original     = lines[targetIndex];
-        var indent       = original.Length - original.TrimStart().Length;
-        var leadingSpaces = original[..indent];
-
-        lines[targetIndex] = $"{leadingSpaces}custom = \"{custom}\";";
-        System.IO.File.WriteAllLines(PaymentServiceManagerPath, lines);
+        if (!System.IO.File.Exists(PaymentServiceManagerPath))
+        {
+            AchPostStatus.Text = $"❌ File not found: {PaymentServiceManagerPath}";
+            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(220, 38, 38));
+            return;
+        }
+        var count = PatchPaymentServiceManagerCustom(custom);
+        if (count == 0)
+        {
+            AchPostStatus.Text = "⚠ No matching lines found in PaymentServiceManager .cs";
+            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(217, 119, 6));
+        }
+        else
+        {
+            AchPostStatus.Text = $"✅ Updated {count} line(s) in PaymentServiceManager .cs → {custom}";
+            AchPostStatus.Foreground = new WpfBrush(WpfColor.FromRgb(22, 163, 74));
+        }
     }
 
     // ── Fiddler / HTTP Proxy ──────────────────────────────────────────────────
@@ -7867,16 +7895,21 @@ WHERE {filter}
 
                 var wMerchant = entityName ?? "BQE Core";
 
+                // LocalCompanyId is only needed for non-local environments (Sprint/Staging)
+                var wUrl = WebhookUrlBox.Text.Trim();
+                bool wIsLocal = wUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+                             || wUrl.Contains("127.0.0.1");
+                string? wLocalCompanyId = (!wIsLocal && companyId is { Length: > 0 }) ? companyId : null;
+
                 // ── Rebuild payload with resolved IDs ───────────────────────────────────
                 if (accountId is not null && companyId is not null && rec is not null)
                 {
-                    var realCustom = $"{accountId},{companyId}";
                     wp = typeIdx switch
                     {
-                        4 or 7 => WebhookTestService.BuildWithdrawalProcessedPayloadFromRecord(rec, realCustom, wMerchant, entries: wEntries),
-                        10     => WebhookTestService.BuildWithdrawalPendingPayloadFromRecord(rec, realCustom, wMerchant, entries: wEntries),
-                        11     => WebhookTestService.BuildWithdrawalScheduledPayloadFromRecord(rec, realCustom, wMerchant, entries: wEntries),
-                        _      => WebhookTestService.BuildWithdrawalPayloadFromRecord(rec, realCustom, wMerchant, entries: wEntries),
+                        4 or 7 => WebhookTestService.BuildWithdrawalProcessedPayloadFromRecord(rec, wLocalCompanyId, wMerchant, entries: wEntries),
+                        10     => WebhookTestService.BuildWithdrawalPendingPayloadFromRecord(rec, wLocalCompanyId, wMerchant, entries: wEntries),
+                        11     => WebhookTestService.BuildWithdrawalScheduledPayloadFromRecord(rec, wLocalCompanyId, wMerchant, entries: wEntries),
+                        _      => WebhookTestService.BuildWithdrawalPayloadFromRecord(rec, wLocalCompanyId, wMerchant, entries: wEntries),
                     };
                     SetPayload(PrettyPrint(wp));
                     entityInfo = $"  |  AccountID: {accountId}  CompanyID: {companyId}  |  {wEntries.Count} line item(s)";

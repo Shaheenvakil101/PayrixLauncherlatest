@@ -14292,6 +14292,27 @@
                                                     </ControlTemplate>
                                                 </Button.Template>
                                             </Button>
+                                            <Button x:Name="UpdateHostCodeBtn"
+                                                    Content="🔧 Update Host Code" Height="28" Padding="10,0"
+                                                    FontSize="11" Cursor="Hand" Margin="6,0,0,0"
+                                                    BorderThickness="1" BorderBrush="#FCD34D"
+                                                    Background="#FFFBEB" Foreground="#78350F"
+                                                    Click="UpdateHostCodeBtn_Click"
+                                                    ToolTip="Write AccountID,CompanyID into PaymentServiceManager .cs (lines 2184 + 2427) using the current Entity Custom value">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#FEF3C7"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
                                             <TextBlock x:Name="EntityCustomHint"
                                                        FontSize="11" Foreground="{DynamicResource HintFg}"
                                                        VerticalAlignment="Center" Margin="10,0,0,0"

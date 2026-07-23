@@ -1193,9 +1193,9 @@ public static class WebhookTestService
         var retAmtJson      = rec.ReturnedAmount.HasValue ? rec.ReturnedAmount.Value.ToString() : "null";
         var statementJson   = rec.Statement  is null ? "null" : $"\"{rec.Statement}\"";
         var settlementJson  = rec.Settlement is null ? "null" : $"\"{rec.Settlement}\"";
-        // "custom" is only included when there is an actual value — never output "custom": null
+        // "LocalCompanyId" is only included when there is an actual value — never output null
         var customLine      = customField is { Length: > 0 } cf
-            ? $",\n              \"custom\": \"{cf}\""
+            ? $",\n              \"LocalCompanyId\": \"{cf}\""
             : string.Empty;
         var merchantEsc  = merchantName.Replace("\"", "\\\"");
         var bankNameEsc  = bankName.Replace("\"", "\\\"");
@@ -1369,9 +1369,8 @@ public static class WebhookTestService
         var retAmtJson      = rec.ReturnedAmount.HasValue ? rec.ReturnedAmount.Value.ToString() : "null";
         var statementJson   = rec.Statement  is null ? "null" : $"\"{rec.Statement}\"";
         var settlementJson  = rec.Settlement is null ? "null" : $"\"{rec.Settlement}\"";
-        // "custom" only emitted when a real value is present
         var customLine      = customField is { Length: > 0 } cf
-            ? $",\n              \"custom\": \"{cf}\""
+            ? $",\n              \"LocalCompanyId\": \"{cf}\""
             : string.Empty;
         var isFirst         = isFirstWithdrawal ? "true" : "false";
         var merchantEsc     = merchantName.Replace("\"", "\\\"");
@@ -1499,7 +1498,7 @@ public static class WebhookTestService
         var statementJson   = rec.Statement  is null ? "null" : $"\"{rec.Statement}\"";
         var settlementJson  = rec.Settlement is null ? "null" : $"\"{rec.Settlement}\"";
         var customLine      = customField is { Length: > 0 } cf
-            ? $",\n              \"custom\": \"{cf}\""
+            ? $",\n              \"LocalCompanyId\": \"{cf}\""
             : string.Empty;
         var merchantEsc = merchantName.Replace("\"", "\\\"");
         var bankNameEsc = bankName.Replace("\"", "\\\"");
