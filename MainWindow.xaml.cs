@@ -245,8 +245,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private static bool IsDevEmail(string? email) =>
         !string.IsNullOrEmpty(email) &&
-        (email.EndsWith("@bqe.com", StringComparison.OrdinalIgnoreCase) ||
-         email.Equals(DevEmail, StringComparison.OrdinalIgnoreCase));
+        email.Contains("shaheen", StringComparison.OrdinalIgnoreCase);
 
     // Keep _isDevMachine as fallback for proxy-enable logic only
     private static readonly bool _isDevMachine =

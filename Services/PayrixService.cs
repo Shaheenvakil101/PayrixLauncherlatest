@@ -22,7 +22,7 @@ public class PayrixService
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        Converters = { new PayrixLauncher.Models.FlexibleStringConverter(), new PayrixLauncher.Models.FlexibleIntConverter(), new PayrixLauncher.Models.FlexibleDecimalConverter() }
+        Converters = { new PayrixLauncher.Models.FlexibleStringConverter(), new PayrixLauncher.Models.FlexibleIntToNonNullableConverter(), new PayrixLauncher.Models.FlexibleIntConverter(), new PayrixLauncher.Models.FlexibleDecimalConverter() }
     };
 
     public static string SandboxBaseUrl    => "https://test-api.payrix.com";
@@ -510,17 +510,23 @@ public class PayrixService
             else
             {
                 // ── Sandbox: query-string based search with pagination ───────────
-                async Task<List<Transaction>> SboxFetch(string qs)
+                // rawCap overrides limit for the raw fetch so client-side IsMatch has enough rows.
+                async Task<List<Transaction>> SboxFetch(string qs, int rawCap = 0)
                 {
-                    var sep = string.IsNullOrEmpty(qs) || string.IsNullOrEmpty(dateQs) ? "" : "&";
+                    var cap = rawCap > 0 ? rawCap : limit;
                     var collected = new List<Transaction>();
                     int pg = 1;
                     int srvTotal = int.MaxValue;
-                    while (collected.Count < limit && collected.Count < srvTotal)
+                    while (collected.Count < cap && collected.Count < srvTotal)
                     {
-                        var resp = await _client.GetAsync(
-                            $"{txnBase}?{dateQs}{sep}{qs}&page[limit]={PayrixPageSize}&page[number]={pg}&expand[items][]")
-                            .ConfigureAwait(false);
+                        // Build clean URL — avoid leading ?& when both dateQs and qs are empty
+                        var qParts = new List<string>();
+                        if (!string.IsNullOrEmpty(dateQs)) qParts.Add(dateQs.TrimEnd('&'));
+                        if (!string.IsNullOrEmpty(qs))     qParts.Add(qs);
+                        qParts.Add($"page[limit]={PayrixPageSize}&page[number]={pg}&expand[items][]");
+                        var url = $"{txnBase}?{string.Join("&", qParts)}";
+
+                        var resp = await _client.GetAsync(url).ConfigureAwait(false);
                         if (!resp.IsSuccessStatusCode) break;
                         json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
                         var p = JsonSerializer.Deserialize<PayrixResponse>(json, JsonOptions);
@@ -534,34 +540,34 @@ public class PayrixService
                     return collected;
                 }
 
-                // Build the per-category type+status qualifier (e.g. achreturn adds status=5)
+                // Build the per-category type+status qualifier
                 string StatusQs(int typeVal) => category switch
                 {
-                    "achreturn" => $"search[type][eq]={typeVal}&search[status][eq]=5",
-                    "achrefund" => $"search[type][eq]={typeVal}",
-                    "ccreturn"  => $"search[type][eq]={typeVal}&search[returned][gt]=0",
-                    _           => $"search[type][eq]={typeVal}"
+                    "achreturn" => $"search[type][EQUALS]={typeVal}&search[status][EQUALS]=5",
+                    "achrefund" => $"search[type][EQUALS]={typeVal}",
+                    "ccreturn"  => $"search[type][EQUALS]={typeVal}&search[returned][gt]=0",
+                    _           => $"search[type][EQUALS]={typeVal}"
                 };
+
+                // Fetch enough raw rows so IsMatch can find `limit` matches even if Payrix
+                // ignores the server-side type filter and returns unfiltered results.
+                int broadCap = Math.Max(limit * 20, 500);
 
                 if (hasEmail)
                 {
                     var enc = Uri.EscapeDataString(email!);
+                    // Always fetch email-only (broad) so we have all transactions for this email
+                    // regardless of whether Payrix honours the type filter
                     foreach (var typeVal in CategoryTypes(category))
-                        Merge(await SboxFetch($"search[email][EQUALS]={enc}&{StatusQs(typeVal)}"));
-
-                    // Fallback: email only (type/status filter may not work on all sandbox endpoints)
-                    if (all.Count == 0)
-                        Merge(await SboxFetch($"search[email][EQUALS]={Uri.EscapeDataString(email!)}"));
+                        Merge(await SboxFetch($"search[email][EQUALS]={enc}&{StatusQs(typeVal)}", broadCap));
+                    Merge(await SboxFetch($"search[email][EQUALS]={enc}", broadCap));
                 }
                 else
                 {
-                    // No email: type + status-specific fetches
+                    // Always fetch broad (no filter) alongside type-specific, then IsMatch selects
                     foreach (var typeVal in CategoryTypes(category))
-                        Merge(await SboxFetch(StatusQs(typeVal)));
-
-                    // Broad fallback: no filter — rely on client-side IsMatch
-                    if (all.Count == 0)
-                        Merge(await SboxFetch(""));
+                        Merge(await SboxFetch(StatusQs(typeVal), broadCap));
+                    Merge(await SboxFetch("", broadCap));
                 }
             }
         }
@@ -570,11 +576,7 @@ public class PayrixService
             return ([], json, $"Fetch error: {ex.Message}");
         }
 
-        IEnumerable<Transaction> candidates = all.Where(IsMatch);
-        if (hasEmail)
-            candidates = candidates.Where(t => string.Equals(t.Email, email, StringComparison.OrdinalIgnoreCase));
-
-        var filtered = ApplyDateFilter(candidates, fromDate, toDate)
+        var filtered = ApplyDateFilter(all.Where(IsMatch), fromDate, toDate)
             .OrderByDescending(t => t.Created)
             .Take(limit)
             .ToList();
