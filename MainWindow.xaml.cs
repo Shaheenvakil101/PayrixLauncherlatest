@@ -1027,17 +1027,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         if (!_isInitialized) return;   // called before controls exist — skip
 
-        // Load existing settings first so we preserve fields not managed by the UI
-        // (e.g. OAuth client IDs stored directly in settings.json)
         var existing = SettingsService.Load();
-
         SettingsService.Save(new AppSettings
         {
-            // ── OAuth credentials — carry forward from file, never overwrite ──
-            GoogleClientId     = existing.GoogleClientId,
-            GoogleClientSecret = existing.GoogleClientSecret,
-            MicrosoftClientId  = existing.MicrosoftClientId,
-            AppleClientId      = existing.AppleClientId,
             IsSandbox        = IsSandbox,
             SandboxApiKey    = SandboxApiKeyBox.Password,
             ProductionApiKey = ProductionApiKeyBox.Password,
@@ -7868,7 +7860,7 @@ WHERE {filter}
                     AchAmountBox.Text = rec.AmountFormatted;
                 }
 
-                // ── Fetch CompanyID + AccountID: try Payrix entity custom field first ──
+                // ── Fetch CompanyID + AccountID + merchant name from Payrix entity ──
                 string? accountId  = null;
                 string? companyId  = null;
                 string  entityInfo  = "";
@@ -7879,18 +7871,6 @@ WHERE {filter}
                     accountId  = eid_acc;
                     companyId  = eid_cmp;
                     entityName = eid_name;
-                }
-
-                // ── Fallback: Host DB ────────────────────────────────────────────────────
-                if ((accountId is null || companyId is null) && rec?.Id is not null)
-                {
-                    var connStr = ActiveHostDbConnectionString();
-                    if (!string.IsNullOrEmpty(connStr))
-                    {
-                        var (dbCmp, dbAcc, _) = await HostDbService.GetIdsForTransactionAsync(connStr, rec.Id);
-                        if (dbAcc is not null) accountId = dbAcc;
-                        if (dbCmp is not null) companyId = dbCmp;
-                    }
                 }
 
                 var wMerchant = entityName ?? "BQE Core";

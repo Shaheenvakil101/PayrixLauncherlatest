@@ -28,7 +28,7 @@
   "CoreAccountEmail": "Shaheen.vakil@bqe.com",
   "LocalMainDbConnectionString": "Data Source=KFWSHAVAK\\SQL2022;Initial Catalog=BQECoreHost;User Id=sa;Password=bqeko@123;MultipleActiveResultSets=true",
   "StagingMainDbConnectionString": "",
-  "SprintMainDbConnectionString": "",
+  "SprintMainDbConnectionString": "Data Source=SPT-SQLCDB-01\\SPTSQLCDB01,5101;Initial Catalog=BQECoreHost;User Id=readonlyuser;Password=iaf@349#;MultipleActiveResultSets=true;Enlist=true",
   "ProductionMainDbConnectionString": "",
   "ProxyEnabled": false,
   "ProxyUrl": "http://localhost:8888",

@@ -13,22 +13,6 @@ public partial class LoginWindow : Window
 
     private const string BqeTenant = "bqe.com";
 
-    // OAuth endpoints
-    private static class OAuth
-    {
-        public const string GoogleAuth    = "https://accounts.google.com/o/oauth2/v2/auth";
-        public const string GoogleToken   = "https://oauth2.googleapis.com/token";
-        public const string GoogleScope   = "openid email profile";
-
-        public const string MicrosoftAuth  = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
-        public const string MicrosoftToken = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-        public const string MicrosoftScope = "openid email profile";
-
-        public const string AppleAuth  = "https://appleid.apple.com/auth/authorize";
-        public const string AppleToken = "https://appleid.apple.com/auth/token";
-        public const string AppleScope = "openid email name";
-    }
-
     public LoginWindow()
     {
         InitializeComponent();
@@ -160,61 +144,6 @@ public partial class LoginWindow : Window
             WinPasswordPlainBox.Clear();
             UpdateSignInButton();
             (_showingPlain ? (UIElement)WinPasswordPlainBox : WinPasswordBox).Focus();
-        }
-    }
-
-    // ── Social login ─────────────────────────────────────────────────────────
-
-    private void GoogleLogin_Click(object sender, RoutedEventArgs e)
-    {
-        var settings = Services.SettingsService.Load();
-        if (string.IsNullOrWhiteSpace(settings.GoogleClientId))
-        {
-            ShowMessage("Google client ID not configured.\nAdd GoogleClientId to Settings → OAuth.", isError: true);
-            return;
-        }
-        OpenOAuth("Google", settings.GoogleClientId,
-                  OAuth.GoogleAuth, OAuth.GoogleToken, OAuth.GoogleScope,
-                  clientSecret: settings.GoogleClientSecret);
-    }
-
-    private void MicrosoftLogin_Click(object sender, RoutedEventArgs e)
-    {
-        var settings = Services.SettingsService.Load();
-        if (string.IsNullOrWhiteSpace(settings.MicrosoftClientId))
-        {
-            ShowMessage("Microsoft client ID not configured.\nAdd MicrosoftClientId to Settings → OAuth.", isError: true);
-            return;
-        }
-        OpenOAuth("Microsoft", settings.MicrosoftClientId,
-                  OAuth.MicrosoftAuth, OAuth.MicrosoftToken, OAuth.MicrosoftScope);
-    }
-
-    private void AppleLogin_Click(object sender, RoutedEventArgs e)
-    {
-        var settings = Services.SettingsService.Load();
-        if (string.IsNullOrWhiteSpace(settings.AppleClientId))
-        {
-            ShowMessage("Apple client ID not configured.\nAdd AppleClientId to Settings → OAuth.", isError: true);
-            return;
-        }
-        OpenOAuth("Apple", settings.AppleClientId,
-                  OAuth.AppleAuth, OAuth.AppleToken, OAuth.AppleScope);
-    }
-
-    private void OpenOAuth(string provider, string clientId,
-                           string authUrl, string tokenUrl, string scope,
-                           string? clientSecret = null)
-    {
-        var win = new OAuthWindow(provider, clientId, authUrl, tokenUrl, scope, clientSecret)
-        {
-            Owner = this
-        };
-        var result = win.ShowDialog();
-        if (result == true && win.Email is not null)
-        {
-            SetIdentity(win.Email, win.FullName);
-            DialogResult = true;
         }
     }
 

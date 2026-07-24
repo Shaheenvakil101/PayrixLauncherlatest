@@ -61,11 +61,6 @@ public class AppSettings
     public string ActiveBqeEnv      { get; set; } = "";
     public Dictionary<string, BqeEnvProfile> BqeEnvProfiles { get; set; } = new();
 
-    // OAuth client IDs (register apps at console.cloud.google.com / portal.azure.com)
-    public string GoogleClientId     { get; set; } = "";
-    public string GoogleClientSecret { get; set; } = "";
-    public string MicrosoftClientId  { get; set; } = "";
-    public string AppleClientId      { get; set; } = "";
 
     // Core DB Utility — Section 1: Host DB credentials
     public string CoreHostServer         { get; set; } = "";
